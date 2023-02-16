@@ -32,25 +32,33 @@ func _ready():
 	display_cells()
 
 func place_rooms():
-	for i in range(room_count):
+	var rooms_spawned : int = 0
+	var num_tries : int = 0
+	while rooms_spawned < room_count:
+		if num_tries > 100:
+			break
+		
+		num_tries += 1
 		var room_position = Vector3i(random.randi_range(0,size.x - 1), random.randi_range(0,size.y - 1), random.randi_range(0,size.z - 1))
 		var room_size = Vector3i(random.randi_range(room_min_size.x,room_max_size.x), random.randi_range(room_min_size.y,room_max_size.y), random.randi_range(room_min_size.z,room_max_size.z))
 		
-		var add = true
 		var new_room = Room.new(room_position, room_size)
 		var buffer_room = Room.new(room_position + Vector3i(-1,-1,-1), room_size + Vector3i(2,1,2))
 		
+		var add = true
 		for room in rooms:
 			if room.intersect(buffer_room):
 				add = false
 				break
 		
+		if !add: continue
 		if !grid.bounds.encloses(new_room.bounds):
-			add = false
+			continue;
 		
-		if add:
-			rooms.append(new_room)
-			grid.assign_mass(new_room.bounds, func(position : Vector3i): return Cell.new(CellType.Room, position))
+		rooms.append(new_room)
+		grid.assign_mass(new_room.bounds, func(position : Vector3i): return Cell.new(CellType.Room, position))
+		rooms_spawned += 1
+		num_tries = 0
 
 func triangulate():
 	var vertices : Array[Delaunay3D.Vertex]

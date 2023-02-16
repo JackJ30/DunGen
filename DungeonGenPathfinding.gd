@@ -91,7 +91,7 @@ func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 					queue.enqueue(neighbor, neighbor.cost)
 				
 				neighbor.previous_set.clear()
-				neighbor.previous_set.add(node.previous_set)
+				neighbor.previous_set.add_array(node.previous_set.array)
 				neighbor.previous_set.add(node.position)
 				
 				if path_cost.is_stair: # TODO - REFACTOR FOR VERTICAL MOVEMENT REWORK (THIS CODE PIECE CHECKS ALL FOUR CELLS IN THE STAIRWAY)
