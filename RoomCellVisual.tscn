@@ -1,0 +1,9 @@
+[gd_scene load_steps=3 format=3 uid="uid://bv77cm88c3hp8"]
+
+[ext_resource type="Script" path="res://VisualCell.gd" id="1_aw5kn"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_562j0"]
+
+[node name="MeshInstance3D" type="MeshInstance3D"]
+mesh = SubResource("BoxMesh_562j0")
+script = ExtResource("1_aw5kn")

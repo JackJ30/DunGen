@@ -1,0 +1,38 @@
+[gd_scene load_steps=9 format=3 uid="uid://b2k3lbai66xyx"]
+
+[ext_resource type="Script" path="res://DungeonGenerator.gd" id="1_v3c6w"]
+[ext_resource type="Script" path="res://DungeonVisualGenerator.gd" id="2_po5w3"]
+[ext_resource type="PackedScene" uid="uid://bv77cm88c3hp8" path="res://RoomCellVisual.tscn" id="3_573hs"]
+[ext_resource type="PackedScene" uid="uid://dpj0u8renh88i" path="res://RoomHallwayVisual.tscn" id="4_0ab64"]
+[ext_resource type="Script" path="res://FreeLookCamera.gd" id="4_65vd6"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_uiymn"]
+
+[sub_resource type="Sky" id="Sky_cpprc"]
+sky_material = SubResource("ProceduralSkyMaterial_uiymn")
+
+[sub_resource type="Environment" id="Environment_8ue51"]
+background_mode = 2
+sky = SubResource("Sky_cpprc")
+
+[node name="Node3D" type="Node3D"]
+
+[node name="Generator" type="Node" parent="."]
+script = ExtResource("1_v3c6w")
+size = Vector3i(40, 6, 40)
+room_count = 10
+room_max_size = Vector3i(6, 2, 6)
+room_min_size = Vector3i(2, 1, 2)
+extra_hallway_chance = 0.05
+
+[node name="Visual Generator" type="Node3D" parent="Generator"]
+script = ExtResource("2_po5w3")
+room_visual = ExtResource("3_573hs")
+hallway_visual = ExtResource("4_0ab64")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(-0.618614, 0.176382, -0.765641, 0, 0.974476, 0.224492, 0.785695, 0.138874, -0.602825, -1.73856, 1.90226, -0.169618)
+script = ExtResource("4_65vd6")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_8ue51")
