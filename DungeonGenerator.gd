@@ -27,7 +27,7 @@ func _ready():
 	place_rooms()
 	triangulate()
 	create_hallways()
-	#display_edges(selected_edges)
+	display_edges(selected_edges)
 	pathfind_hallways()
 	display_cells()
 
@@ -91,7 +91,6 @@ func pathfind_hallways():
 		if path != null:
 			for i in range(path.size()):
 				var current = path[i]
-				print(grid.grab(current).cell_type == CellType.None)
 				if grid.grab(current).cell_type == CellType.None: grid.grab(current).cell_type = CellType.Hallway
 				if i > 0:
 					var previous = path[i - 1]

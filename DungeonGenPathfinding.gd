@@ -46,8 +46,6 @@ func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 	grid.grab(start).cost = 0.0
 	queue.enqueue(grid.grab(start),0.0)
 	
-	print("NEW QUEUE")
-	var finaldeathreason = 0
 	while !queue.empty():
 		var node : DNode = queue.dequeue()
 		closed.add(node)
@@ -57,19 +55,15 @@ func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 		
 		for offset in neighbors:
 			if !grid.in_bounds(node.position + offset): 
-				finaldeathreason = 1
 				continue
 			var neighbor : DNode = grid.grab(node.position + offset)
 			if closed.contains(neighbor): 
-				finaldeathreason = 2
 				continue
 			if node.previous_set.contains(neighbor): 
-				finaldeathreason = 3
 				continue
 			
 			var path_cost : PathCost = costFunction.call(node, neighbor, start, end)
-			if !path_cost.traversable:  
-				finaldeathreason = 4
+			if !path_cost.traversable: 
 				continue
 			
 			if path_cost.is_stair: # TODO - REFACTOR FOR VERTICAL MOVEMENT REWORK (THIS CODE PIECE CHECKS ALL FOUR CELLS IN THE STAIRWAY)
@@ -83,9 +77,7 @@ func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 					node.previous_set.contains(node.position + horizontal_offset * 2) ||
 					node.previous_set.contains(node.position + vertical_offset + horizontal_offset) ||
 					node.previous_set.contains(node.position + vertical_offset + horizontal_offset * 2)
-				):  
-					finaldeathreason = 5
-					continue
+				): continue
 				
 			var new_cost = path_cost.cost + node.cost
 			
@@ -108,12 +100,10 @@ func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 					var vertical_offset = Vector3i(0, offset.y, 0)
 					var horizontal_offset = Vector3i(xDir, 0, zDir)
 					
-					node.previous_set.add(node.position + horizontal_offset)
-					node.previous_set.add(node.position + horizontal_offset * 2)
-					node.previous_set.add(node.position + vertical_offset + horizontal_offset)
-					node.previous_set.add(node.position + vertical_offset + horizontal_offset * 2)
-					
-	print(finaldeathreason)
+					neighbor.previous_set.add(node.position + horizontal_offset)
+					neighbor.previous_set.add(node.position + horizontal_offset * 2)
+					neighbor.previous_set.add(node.position + vertical_offset + horizontal_offset)
+					neighbor.previous_set.add(node.position + vertical_offset + horizontal_offset * 2)
 	return null
 
 func reconstruct_path(start_node : DNode) -> Array[Vector3i]:

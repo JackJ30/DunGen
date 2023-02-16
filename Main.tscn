@@ -21,7 +21,7 @@ sky = SubResource("Sky_cpprc")
 [node name="Generator" type="Node" parent="."]
 script = ExtResource("1_v3c6w")
 size = Vector3i(40, 6, 40)
-room_count = 10
+room_count = 20
 room_max_size = Vector3i(6, 2, 6)
 room_min_size = Vector3i(2, 1, 2)
 extra_hallway_chance = 0.05
