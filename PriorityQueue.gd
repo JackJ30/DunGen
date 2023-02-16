@@ -20,9 +20,6 @@ func enqueue(data, priority : float) -> void:
 	var new_item = QueueItem.new(data, priority)
 	insert(new_item)
 
-	# we can assume new element has the highest priority, just append
-	self.queue.append(new_item)
-
 # removes first item
 func dequeue():
 	if self.empty() == true:
@@ -42,6 +39,9 @@ func insert(item : QueueItem):
 		if self.queue[i].priority > item.priority:
 			self.queue.insert(i, item)
 			return
+	
+	# we can assume new element has the highest priority, just append
+	self.queue.append(item)
 
 # remove last item
 func dequeue_back():

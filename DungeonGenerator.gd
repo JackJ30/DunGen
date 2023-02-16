@@ -11,7 +11,7 @@ class_name DungeonGenerator
 @export_group("Hallway Settings")
 @export_range(0.0,1.0) var extra_hallway_chance = 0.125
 
-@onready var visual_gen = get_node("Visual Generator")
+@onready var visual_gen : DunngeonVisualGenerator = get_node("Visual Generator")
 var grid : Grid3D
 var rooms : Array[Room]
 var selected_edges : Array[Delaunay3D.Edge]
@@ -27,7 +27,7 @@ func _ready():
 	place_rooms()
 	triangulate()
 	create_hallways()
-	display_edges(selected_edges)
+	#display_edges(selected_edges)
 	pathfind_hallways()
 	display_cells()
 
@@ -87,12 +87,12 @@ func pathfind_hallways():
 		var end_pos = Vector3i(end_pos_f)
 		
 		var path = pathfinder.find_path(start_pos, end_pos, Callable(self, "cost_function"))
-		print(path)
 		
 		if path != null:
 			for i in range(path.size()):
 				var current = path[i]
-				if grid.grab(current).cell_type == CellType.None: grid.grab(current).cell_type == CellType.Hallway
+				print(grid.grab(current).cell_type == CellType.None)
+				if grid.grab(current).cell_type == CellType.None: grid.grab(current).cell_type = CellType.Hallway
 				if i > 0:
 					var previous = path[i - 1]
 					var delta = current - previous
@@ -156,6 +156,7 @@ func display_cells():
 			for cell in y:
 				if(cell.cell_type == CellType.Room): visual_gen.display_room_cell(cell)
 				if(cell.cell_type == CellType.Hallway): visual_gen.display_hallway_cell(cell)
+				if(cell.cell_type == CellType.Stairs): visual_gen.display_stair_cell(cell)
 
 func display_edges(edges : Array[Delaunay3D.Edge]):
 	for edge in edges:

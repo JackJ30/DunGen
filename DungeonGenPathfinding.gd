@@ -87,7 +87,7 @@ func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 					finaldeathreason = 5
 					continue
 				
-			var new_cost = node.cost + path_cost.cost
+			var new_cost = path_cost.cost + node.cost
 			
 			if new_cost < neighbor.cost:
 				neighbor.previous = node
