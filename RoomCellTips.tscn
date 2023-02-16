@@ -1,0 +1,13 @@
+[gd_scene load_steps=4 format=3 uid="uid://cpgintn31w8kc"]
+
+[ext_resource type="Script" path="res://VisualCell.gd" id="1_ch5ml"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wg04a"]
+albedo_color = Color(0, 0.156863, 0.698039, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_562j0"]
+
+[node name="MeshInstance3D" type="MeshInstance3D"]
+material_override = SubResource("StandardMaterial3D_wg04a")
+mesh = SubResource("BoxMesh_562j0")
+script = ExtResource("1_ch5ml")

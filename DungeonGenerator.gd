@@ -11,12 +11,13 @@ class_name DungeonGenerator
 @export_group("Hallway Settings")
 @export_range(0.0,1.0) var extra_hallway_chance = 0.125
 
-@onready var visual_gen = get_node("Visual Generator")
+@onready var visual_gen : DungeonVisualGenerator = get_node("Visual Generator")
 var grid : Grid3D
 var rooms : Array[Room]
 var selected_edges : Array[Delaunay3D.Edge]
 var delaunay : Delaunay3D
 var random : RandomNumberGenerator
+var pathfinder : DungeonGenPathfinder
 
 func _ready():
 	grid = Grid3D.new(size, Vector3i.ZERO, func(position : Vector3i): return Cell.new(CellType.None,position))
@@ -28,8 +29,12 @@ func _ready():
 	triangulate()
 	create_hallways()
 	display_edges(selected_edges)
-	pathfind_hallways()
+	start_pathfind_hallways()
 	display_cells()
+
+func _input(event):
+	if event.is_action_pressed("ui_accept"):
+		continue_pathfind_hallways()
 
 func place_rooms():
 	for i in range(room_count):
@@ -74,44 +79,79 @@ func create_hallways():
 		if random.randf_range(0.0,1.0) < extra_hallway_chance:
 			selected_edges.append(edge)
 
-func pathfind_hallways():
-	var pathfinder = DungeonGenPathfinder.new(size)
+func start_pathfind_hallways():
+	pathfinder = DungeonGenPathfinder.new(size)
 	
-	for edge in selected_edges:
-		var start_room : Room = edge.u.data
-		var end_room : Room = edge.v.data
-		
-		var start_pos_f = start_room.bounds.get_center()
-		var end_pos_f = end_room.bounds.get_center()
-		var start_pos = Vector3i(start_pos_f)
-		var end_pos = Vector3i(end_pos_f)
-		
-		var path = pathfinder.find_path(start_pos, end_pos, Callable(self, "cost_function"))
-		print(path)
-		
-		if path != null:
-			for i in range(path.size()):
-				var current = path[i]
-				if grid.grab(current).cell_type == CellType.None: grid.grab(current).cell_type == CellType.Hallway
-				if i > 0:
-					var previous = path[i - 1]
-					var delta = current - previous
-					
-					if delta.y != 0:
-						# TODO - REFACTOR FOR VERTICAL MOVEMENT REWORK (THIS CODE PIECE CHECKS ALL FOUR CELLS IN THE STAIRWAY)
-						var xDir : int = clamp(delta.x, -1, 1)
-						var zDir : int = clamp(delta.z, -1, 1)
-						var vertical_offset = Vector3i(0, delta.y, 0)
-						var horizontal_offset = Vector3i(xDir, 0, zDir)
-						
-						grid.grab(previous + horizontal_offset).cell_type = CellType.Stairs;
-						grid.grab(previous + horizontal_offset * 2).cell_type = CellType.Stairs;
-						grid.grab(previous + vertical_offset + horizontal_offset).cell_type = CellType.Stairs;
-						grid.grab(previous + vertical_offset + horizontal_offset * 2).cell_type = CellType.Stairs;
+	var start_room : Room = selected_edges[0].u.data
+	var end_room : Room = selected_edges[0].v.data
+	
+	var start_pos_f = start_room.bounds.get_center()
+	var end_pos_f = end_room.bounds.get_center()
+	var start_pos = Vector3i(start_pos_f)
+	var end_pos = Vector3i(end_pos_f)
+	
+	var path = pathfinder.start_path(start_pos, end_pos, Callable(self, "cost_function"))
+
+func continue_pathfind_hallways():
+	var start_room : Room = selected_edges[0].u.data
+	var end_room : Room = selected_edges[0].v.data
+	
+	var start_pos_f = start_room.bounds.get_center()
+	var end_pos_f = end_room.bounds.get_center()
+	var start_pos = Vector3i(start_pos_f)
+	var end_pos = Vector3i(end_pos_f)
+	
+	var path = pathfinder.continue_path(start_pos, end_pos, Callable(self, "cost_function"))
+	
+	visual_gen.clear()
+	display_cells()
+	visual_gen.display_tips_cell(grid.grab(start_pos))
+	visual_gen.display_tips_cell(grid.grab(end_pos))
+	
+	for neighbor in path[2]:
+		visual_gen.display_eligble_cell(grid.grab(neighbor[0]), neighbor[1])
+	
+	if(path != null): 
+		visual_gen.display_current_cell(grid.grab(path[0]))
+		#print(path[1])
+	
+	
+	
+	
+	
+	#start, end, current, neighbors (eligible or ineligble)
+	
+	#if path != null:
+	#	for i in range(path.size()):
+	#		var current = path[i]
+	#		if grid.grab(current).cell_type == CellType.None: grid.grab(current).cell_type == CellType.Hallway
+	#		if i > 0:
+	#			var previous = path[i - 1]
+	#			var delta = current - previous
+	#			
+	#			if delta.y != 0:
+	#				# TODO - REFACTOR FOR VERTICAL MOVEMENT REWORK (THIS CODE PIECE CHECKS ALL FOUR CELLS IN THE STAIRWAY)
+	#				var xDir : int = clamp(delta.x, -1, 1)
+	#				var zDir : int = clamp(delta.z, -1, 1)
+	#				var vertical_offset = Vector3i(0, delta.y, 0)
+	#				var horizontal_offset = Vector3i(xDir, 0, zDir)
+	#				
+	#				grid.grab(previous + horizontal_offset).cell_type = CellType.Stairs;
+	#				grid.grab(previous + horizontal_offset * 2).cell_type = CellType.Stairs;
+	#				grid.grab(previous + vertical_offset + horizontal_offset).cell_type = CellType.Stairs;
+	#				grid.grab(previous + vertical_offset + horizontal_offset * 2).cell_type = CellType.Stairs;
 
 func cost_function(a : DungeonGenPathfinder.DNode, b : DungeonGenPathfinder.DNode, start_pos : Vector3i, end_pos : Vector3i):
 	var path_cost = DungeonGenPathfinder.PathCost.new()
 	var delta = b.position - a.position
+	
+	if delta.y == 0:
+		path_cost.cost = Vector3(b.position).distance_to(Vector3(end_pos))
+		path_cost.traversable = true
+		return path_cost
+	else:
+		path_cost.traversable = false
+		return path_cost
 	
 	if delta.y == 0:
 		path_cost.cost = Vector3(b.position).distance_to(Vector3(end_pos))

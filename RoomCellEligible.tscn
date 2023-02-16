@@ -1,0 +1,23 @@
+[gd_scene load_steps=5 format=3 uid="uid://doakby1upexrt"]
+
+[ext_resource type="Script" path="res://VisualCellClickable.gd" id="1_ye32o"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_3wqc2"]
+albedo_color = Color(0.145098, 0.760784, 0, 1)
+
+[sub_resource type="BoxMesh" id="BoxMesh_mgxub"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_8s7e4"]
+
+[node name="StaticBody" type="StaticBody3D"]
+script = ExtResource("1_ye32o")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00988626, 0.010378, -0.000803947)
+material_override = SubResource("StandardMaterial3D_3wqc2")
+mesh = SubResource("BoxMesh_mgxub")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("BoxShape3D_8s7e4")
+
+[connection signal="input_event" from="." to="." method="_on_input_event"]

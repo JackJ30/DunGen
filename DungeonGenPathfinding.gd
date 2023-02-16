@@ -38,39 +38,65 @@ func reset_nodes():
 				node.cost = INF
 				node.previous_set.clear()
 
-func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
+func start_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 	reset_nodes()
 	queue.clear()
 	closed.clear()
 	
 	grid.grab(start).cost = 0.0
 	queue.enqueue(grid.grab(start),0.0)
+
+func continue_path(start : Vector3i, end : Vector3i, costFunction : Callable):
+	if(queue.empty()): return
 	
-	print("NEW QUEUE")
-	var finaldeathreason = 0
-	while !queue.empty():
-		var node : DNode = queue.dequeue()
-		closed.add(node)
+	var node : DNode = queue.dequeue()
+	print(node.cost)
+	closed.add(node)
+	
+	if node.position == end:
+		return reconstruct_path(node)
+	
+	var neighbor_costs = []
+	for offset in neighbors:
+		if !grid.in_bounds(node.position + offset):
+			continue
+		var neighbor : DNode = grid.grab(node.position + offset)
+		if closed.contains(neighbor): 
+			continue
+		if node.previous_set.contains(neighbor): 
+			continue
 		
-		if node.position == end:
-			return reconstruct_path(node)
+		var path_cost : PathCost = costFunction.call(node, neighbor, start, end)
+		if !path_cost.traversable:  
+			continue
 		
-		for offset in neighbors:
-			if !grid.in_bounds(node.position + offset): 
-				finaldeathreason = 1
-				continue
-			var neighbor : DNode = grid.grab(node.position + offset)
-			if closed.contains(neighbor): 
-				finaldeathreason = 2
-				continue
-			if node.previous_set.contains(neighbor): 
-				finaldeathreason = 3
-				continue
+		if path_cost.is_stair: # TODO - REFACTOR FOR VERTICAL MOVEMENT REWORK (THIS CODE PIECE CHECKS ALL FOUR CELLS IN THE STAIRWAY)
+			var xDir : int = clamp(offset.x, -1, 1)
+			var zDir : int = clamp(offset.z, -1, 1)
+			var vertical_offset = Vector3i(0, offset.y, 0)
+			var horizontal_offset = Vector3i(xDir, 0, zDir)
 			
-			var path_cost : PathCost = costFunction.call(node, neighbor, start, end)
-			if !path_cost.traversable:  
-				finaldeathreason = 4
-				continue
+			if (
+				node.previous_set.contains(node.position + horizontal_offset) ||
+				node.previous_set.contains(node.position + horizontal_offset * 2) ||
+				node.previous_set.contains(node.position + vertical_offset + horizontal_offset) ||
+				node.previous_set.contains(node.position + vertical_offset + horizontal_offset * 2)
+			): continue
+			
+		var new_cost = path_cost.cost
+		
+		if new_cost < neighbor.cost:
+			neighbor.previous = node
+			neighbor.cost = new_cost
+			
+			if queue.contains(node):
+				queue.update_priority(node, new_cost)
+			else:
+				queue.enqueue(neighbor, neighbor.cost)
+			
+			neighbor.previous_set.clear()
+			neighbor.previous_set.add(node.previous_set)
+			neighbor.previous_set.add(node.position)
 			
 			if path_cost.is_stair: # TODO - REFACTOR FOR VERTICAL MOVEMENT REWORK (THIS CODE PIECE CHECKS ALL FOUR CELLS IN THE STAIRWAY)
 				var xDir : int = clamp(offset.x, -1, 1)
@@ -78,43 +104,13 @@ func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 				var vertical_offset = Vector3i(0, offset.y, 0)
 				var horizontal_offset = Vector3i(xDir, 0, zDir)
 				
-				if (
-					node.previous_set.contains(node.position + horizontal_offset) ||
-					node.previous_set.contains(node.position + horizontal_offset * 2) ||
-					node.previous_set.contains(node.position + vertical_offset + horizontal_offset) ||
-					node.previous_set.contains(node.position + vertical_offset + horizontal_offset * 2)
-				):  
-					finaldeathreason = 5
-					continue
-				
-			var new_cost = node.cost + path_cost.cost
-			
-			if new_cost < neighbor.cost:
-				neighbor.previous = node
-				neighbor.cost = new_cost
-				
-				if queue.contains(node):
-					queue.update_priority(node, new_cost)
-				else:
-					queue.enqueue(neighbor, neighbor.cost)
-				
-				neighbor.previous_set.clear()
-				neighbor.previous_set.add(node.previous_set)
-				neighbor.previous_set.add(node.position)
-				
-				if path_cost.is_stair: # TODO - REFACTOR FOR VERTICAL MOVEMENT REWORK (THIS CODE PIECE CHECKS ALL FOUR CELLS IN THE STAIRWAY)
-					var xDir : int = clamp(offset.x, -1, 1)
-					var zDir : int = clamp(offset.z, -1, 1)
-					var vertical_offset = Vector3i(0, offset.y, 0)
-					var horizontal_offset = Vector3i(xDir, 0, zDir)
-					
-					node.previous_set.add(node.position + horizontal_offset)
-					node.previous_set.add(node.position + horizontal_offset * 2)
-					node.previous_set.add(node.position + vertical_offset + horizontal_offset)
-					node.previous_set.add(node.position + vertical_offset + horizontal_offset * 2)
-					
-	print(finaldeathreason)
-	return null
+				node.previous_set.add(node.position + horizontal_offset)
+				node.previous_set.add(node.position + horizontal_offset * 2)
+				node.previous_set.add(node.position + vertical_offset + horizontal_offset)
+				node.previous_set.add(node.position + vertical_offset + horizontal_offset * 2)
+		neighbor_costs.append([neighbor.position, neighbor.cost])
+	#print(queue.queue[0].priority)
+	return [node.position, node.cost,neighbor_costs]
 
 func reconstruct_path(start_node : DNode) -> Array[Vector3i]:
 	var result : Array[Vector3i]
