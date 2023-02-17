@@ -1,11 +1,17 @@
-[gd_scene load_steps=10 format=3 uid="uid://b2k3lbai66xyx"]
+[gd_scene load_steps=16 format=3 uid="uid://snnj6rw0pbl2"]
 
-[ext_resource type="Script" path="res://DungeonGenerator.gd" id="1_v3c6w"]
-[ext_resource type="Script" path="res://DungeonVisualGenerator.gd" id="2_po5w3"]
-[ext_resource type="PackedScene" uid="uid://bv77cm88c3hp8" path="res://RoomCellVisual.tscn" id="3_573hs"]
-[ext_resource type="PackedScene" uid="uid://dpj0u8renh88i" path="res://RoomHallwayVisual.tscn" id="4_0ab64"]
-[ext_resource type="Script" path="res://FreeLookCamera.gd" id="4_65vd6"]
-[ext_resource type="PackedScene" uid="uid://nptkhogofepl" path="res://RoomStairVisual.tscn" id="5_jn1ek"]
+[ext_resource type="Script" path="res://Generation/Scripts/DungeonGenerator.gd" id="1_fnvqc"]
+[ext_resource type="Script" path="res://Generation/Scripts/DungeonVisualGenerator.gd" id="2_33cg2"]
+[ext_resource type="PackedScene" path="res://Generation/Scenes/RoomCellVisual.tscn" id="3_rgkjh"]
+[ext_resource type="PackedScene" path="res://Generation/Scenes/RoomHallwayVisual.tscn" id="4_vo7d5"]
+[ext_resource type="PackedScene" path="res://Generation/Scenes/RoomStairVisual.tscn" id="5_3l8ti"]
+[ext_resource type="Script" path="res://Entities/Camera/FreeLookCamera.gd" id="6_coguf"]
+[ext_resource type="PackedScene" uid="uid://431cysbvo4hj" path="res://Generation/Assets/room_floor_tile.glb" id="6_gadw4"]
+[ext_resource type="PackedScene" uid="uid://bob2dkn732byi" path="res://Generation/Assets/room_ceiling_tile.glb" id="7_4kutu"]
+[ext_resource type="PackedScene" uid="uid://btr02s1uusk0x" path="res://Generation/Assets/room_wall_tile0.glb" id="8_qrgyu"]
+[ext_resource type="PackedScene" uid="uid://by1u0sbv2ymei" path="res://Generation/Assets/room_wall_tile1.glb" id="9_8m41e"]
+[ext_resource type="PackedScene" uid="uid://b6qhfw1hfub8k" path="res://Generation/Assets/room_wall_tile2.glb" id="10_c7qao"]
+[ext_resource type="PackedScene" uid="uid://ci062wh708645" path="res://Generation/Assets/room_wall_tile3.glb" id="11_eewmn"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_uiymn"]
 
@@ -19,22 +25,28 @@ sky = SubResource("Sky_cpprc")
 [node name="Node3D" type="Node3D"]
 
 [node name="Generator" type="Node" parent="."]
-script = ExtResource("1_v3c6w")
+script = ExtResource("1_fnvqc")
 size = Vector3i(40, 6, 40)
-room_count = 15
+room_count = 6
 room_max_size = Vector3i(6, 2, 6)
 room_min_size = Vector3i(2, 1, 2)
 extra_hallway_chance = 0.05
 
 [node name="Visual Generator" type="Node3D" parent="Generator"]
-script = ExtResource("2_po5w3")
-room_visual = ExtResource("3_573hs")
-hallway_visual = ExtResource("4_0ab64")
-stair_visual = ExtResource("5_jn1ek")
+script = ExtResource("2_33cg2")
+room_visual = ExtResource("3_rgkjh")
+hallway_visual = ExtResource("4_vo7d5")
+stair_visual = ExtResource("5_3l8ti")
+room_floor = ExtResource("6_gadw4")
+room_ceiling = ExtResource("7_4kutu")
+room_wall0 = ExtResource("8_qrgyu")
+room_wall1 = ExtResource("9_8m41e")
+room_wall2 = ExtResource("10_c7qao")
+room_wall3 = ExtResource("11_eewmn")
 
 [node name="Camera3D" type="Camera3D" parent="."]
 transform = Transform3D(-0.618614, 0.176382, -0.765641, 0, 0.974476, 0.224492, 0.785695, 0.138874, -0.602825, -1.73856, 1.90226, -0.169618)
-script = ExtResource("4_65vd6")
+script = ExtResource("6_coguf")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_8ue51")

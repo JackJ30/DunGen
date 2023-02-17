@@ -1,6 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://bv77cm88c3hp8"]
+[gd_scene load_steps=3 format=3]
 
-[ext_resource type="Script" path="res://VisualCell.gd" id="1_aw5kn"]
+[ext_resource type="Script" path="res://Generation/Scripts/VisualCell.gd" id="1_aw5kn"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_562j0"]
 

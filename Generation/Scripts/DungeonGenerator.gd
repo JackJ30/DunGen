@@ -20,6 +20,7 @@ var random : RandomNumberGenerator
 
 func _ready():
 	grid = Grid3D.new(size, Vector3i.ZERO, func(position : Vector3i): return Cell.new(CellType.None,position))
+	visual_gen.grid = grid
 	delaunay = Delaunay3D.new()
 	random = RandomNumberGenerator.new()
 	random.randomize()
@@ -35,7 +36,7 @@ func place_rooms():
 	var rooms_spawned : int = 0
 	var num_tries : int = 0
 	while rooms_spawned < room_count:
-		if num_tries > 100:
+		if num_tries > 350:
 			break
 		
 		num_tries += 1

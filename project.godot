@@ -17,4 +17,4 @@ config/icon="res://icon.svg"
 
 [autoload]
 
-Draw3D="*res://Draw3D.gd"
+Draw3D="*res://Global/Draw3D.gd"
