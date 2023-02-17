@@ -27,8 +27,8 @@ func get_index(position : Vector3i) -> int:
 func in_bounds(position : Vector3i) -> bool:
 	var pos_offset = position + offset
 	
-	return bounds.has_point(pos_offset + Vector3i.ONE)
-	#return (pos_offset.x < size.x && pos_offset.x >= 0) || (pos_offset.y < size.y && pos_offset.y >= 0) || (pos_offset.y < size.y && pos_offset.y >= 0)
+	#return bounds.has_point(pos_offset + Vector3i.ONE)
+	return (pos_offset.x < size.x && pos_offset.x >= 0) && (pos_offset.y < size.y && pos_offset.y >= 0) && (pos_offset.z < size.z && pos_offset.z >= 0)
 
 func grab(position : Vector3i) -> Object:
 	var pos_offset = position + offset
