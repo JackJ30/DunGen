@@ -59,7 +59,7 @@ func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 			var neighbor : DNode = grid.grab(node.position + offset)
 			if closed.contains(neighbor): 
 				continue
-			if node.previous_set.contains(neighbor): 
+			if node.previous_set.contains(neighbor.position): 
 				continue
 			
 			var path_cost : PathCost = costFunction.call(node, neighbor, start, end)
@@ -91,7 +91,7 @@ func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 					queue.enqueue(neighbor, neighbor.cost)
 				
 				neighbor.previous_set.clear()
-				neighbor.previous_set.add_array(node.previous_set.array)
+				neighbor.previous_set.add_array(node.previous_set.array.keys())
 				neighbor.previous_set.add(node.position)
 				
 				if path_cost.is_stair: # TODO - REFACTOR FOR VERTICAL MOVEMENT REWORK (THIS CODE PIECE CHECKS ALL FOUR CELLS IN THE STAIRWAY)
