@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://snnj6rw0pbl2"]
+[gd_scene load_steps=17 format=3 uid="uid://snnj6rw0pbl2"]
 
 [ext_resource type="Script" path="res://Generation/Scripts/DungeonGenerator.gd" id="1_fnvqc"]
 [ext_resource type="Script" path="res://Generation/Scripts/DungeonVisualGenerator.gd" id="2_33cg2"]
@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" uid="uid://by1u0sbv2ymei" path="res://Generation/Assets/room_wall_tile1.glb" id="9_8m41e"]
 [ext_resource type="PackedScene" uid="uid://b6qhfw1hfub8k" path="res://Generation/Assets/room_wall_tile2.glb" id="10_c7qao"]
 [ext_resource type="PackedScene" uid="uid://ci062wh708645" path="res://Generation/Assets/room_wall_tile3.glb" id="11_eewmn"]
+[ext_resource type="Script" path="res://CameraDirection.gd" id="13_nvvuk"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_uiymn"]
 
@@ -45,8 +46,38 @@ room_wall2 = ExtResource("10_c7qao")
 room_wall3 = ExtResource("11_eewmn")
 
 [node name="Camera3D" type="Camera3D" parent="."]
-transform = Transform3D(-0.618614, 0.176382, -0.765641, 0, 0.974476, 0.224492, 0.785695, 0.138874, -0.602825, -1.73856, 1.90226, -0.169618)
+transform = Transform3D(-0.618614, 0.176382, -0.765641, 0, 0.974476, 0.224492, 0.785695, 0.138874, -0.602824, -1.73856, 1.90226, -0.169618)
 script = ExtResource("6_coguf")
+
+[node name="Control" type="Control" parent="Camera3D"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 366.0
+offset_bottom = 132.0
+
+[node name="RichTextLabel" type="RichTextLabel" parent="Camera3D/Control"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_font_sizes/normal_font_size = 64
+text = "Test Text"
+script = ExtResource("13_nvvuk")
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_8ue51")
+
+[node name="Misc" type="Node3D" parent="."]
+
+[node name="room_wall_tile0" parent="Misc" instance=ExtResource("8_qrgyu")]
+
+[node name="room_wall_tile2" parent="Misc" instance=ExtResource("10_c7qao")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -5.03953, 0, 0)
+
+[node name="room_wall_tile1" parent="Misc" instance=ExtResource("9_8m41e")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -2.25687, 0, 0)
+
+[node name="room_wall_tile3" parent="Misc" instance=ExtResource("11_eewmn")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -8.15927, 0, 0)
