@@ -14,7 +14,8 @@ class_name DungeonGenerator
 @onready var visual_gen : DunngeonVisualGenerator = get_node("Visual Generator")
 var grid : Grid3D
 var rooms : Array[Room]
-var hallway : Array[Hallway]
+var hallways : Array[Hallway]
+var stairs : Array[Stair]
 var selected_edges : Array[Delaunay3D.Edge]
 var delaunay : Delaunay3D
 var random : RandomNumberGenerator
@@ -173,6 +174,7 @@ func display_edges(edges : Array[Delaunay3D.Edge]):
 
 class Cell:
 	var cell_type : CellType
+	var collection
 	var position : Vector3i
 	
 	func _init(cell_type : CellType, position : Vector3i):
@@ -196,5 +198,9 @@ class Room:
 		return bounds.intersects(other.bounds)
 
 class Hallway:
+	func _init():
+		pass
+
+class Stair:
 	func _init():
 		pass
