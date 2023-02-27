@@ -27,63 +27,41 @@ func display_room_cell(cell):
 	if !has_neighbor(cell, Vector3i.UP, Callable(self,"room_neighbor_evaluator")):
 		new_assets.append(room_ceiling.instantiate())
 	
-	var neighbors = [int(has_neighbor(cell, Vector3i(0,0,1),Callable(self,"room_neighbor_evaluator"))),int(has_neighbor(cell, Vector3i(0,0,-1),Callable(self,"room_neighbor_evaluator"))),int(has_neighbor(cell, Vector3i(1,0,0),Callable(self,"room_neighbor_evaluator"))),int(has_neighbor(cell, Vector3i(-1,0,0),Callable(self,"room_neighbor_evaluator")))]
+	Callable(self,"room_neighbor_evaluator")
+	
+	var neighbors = []
+	neighbors.append(int(has_neighbor(cell, Vector3i(0,0,1),Callable(self,"room_neighbor_evaluator"))))
+	neighbors.append(int(has_neighbor(cell, Vector3i(0,0,-1),Callable(self,"room_neighbor_evaluator"))))
+	neighbors.append(int(has_neighbor(cell, Vector3i(1,0,0),Callable(self,"room_neighbor_evaluator"))))
+	neighbors.append(int(has_neighbor(cell, Vector3i(-1,0,0),Callable(self,"room_neighbor_evaluator"))))
 	var num_neighbors = neighbors[0] + neighbors[1] + neighbors[2] + neighbors[3]
 	
 	if(num_neighbors != 4):
-		var new_wall = null
+		var new_wall
 		var tile_direction
-		
 		if num_neighbors == 0:
 			new_wall = room_wall0.instantiate()
-			tile_direction = Vector3i.ZERO
+			tile_direction = Vector3.ZERO
 		if num_neighbors == 1:
 			new_wall = room_wall1.instantiate()
-			tile_direction = Vector3i(0,0,1)
+			tile_direction = Vector3(0,0,1)
 		if num_neighbors == 2:
 			new_wall = room_wall2.instantiate()
-			tile_direction = Vector3i(1,0,1)
+			tile_direction = Vector3(1,0,1)
 		if num_neighbors == 3:
 			new_wall = room_wall3.instantiate()
-			tile_direction = Vector3i(0,0,1)
+			tile_direction = Vector3(0,0,1)
 	
 		add_child(new_wall)
 		new_wall.global_position = grid_to_world_pos_floor(cell.position, cell_scale)
 		
-		var direction = Vector3(neighbors[0] - neighbors[1],0,neighbors[2]-neighbors[3])
-		tile_direction = Vector3(tile_direction.x, 0, -tile_direction.z) # fix rotation issue
-		var angle = atan2(tile_direction.x, tile_direction.z) - atan2(direction.x, direction.z) # calculate angle
-
-		new_wall.global_rotate(Vector3.UP, angle) # apply rotation
+		var direction = Vector3(neighbors[2] - neighbors[3], 0, neighbors[0] - neighbors[1])
+			
+		var angle = atan2(tile_direction.z, tile_direction.x) - atan2(direction.z, direction.x)# direction.angle_to(tile_direction)
+		if angle < 0: angle += 2*PI
 		
-		#var angle = atan2(tile_direction.x,tile_direction.y) - atan2(direction.x,direction.y)
+		new_wall.global_rotation.y = angle
 		
-		#new_wall.global_rotate(Vector3.UP, Vector3(tile_direction).angle_to(direction))
-	#var neighbors = [has_neighbor(cell, Vector3i(0,0,-1), Callable(self,"room_neighbor_evaluator")), has_neighbor(cell, Vector3i(0,0,1), Callable(self,"room_neighbor_evaluator")), has_neighbor(cell, Vector3i(1,0,0), Callable(self,"room_neighbor_evaluator")), has_neighbor(cell, Vector3i(-1,0,0), Callable(self,"room_neighbor_evaluator"))]
-	#var num_neighbors = (int(neighbors[0]) + int(neighbors[1]) + int(neighbors[2]) + int(neighbors[3]))
-	
-	#if num_neighbors != 4:
-		#var new_wall = null
-		#var angle
-		#if num_neighbors == 0: 
-		#	new_wall = room_wall0.instantiate()
-		#	angle = Vector3.ZERO
-		#if num_neighbors == 1:
-		#	new_wall = room_wall1.instantiate()
-		#	angle = Vector3(0,0,1)
-		#if num_neighbors == 2:
-		#	new_wall = room_wall2.instantiate()
-		#	angle = Vector3(1,0,1)
-		#if num_neighbors == 3:
-		#	new_wall = room_wall3.instantiate()
-		#	angle = Vector3(0,0,1)
-		
-		#add_child(new_wall)
-		#new_wall.global_position = grid_to_world_pos_floor(cell.position, cell_scale)
-		
-		#var direction = Vector3(int(neighbors[2]) - int(neighbors[3]), 0, int(neighbors[1]) - int(neighbors[0])) # This is issue
-		#new_wall.global_rotate(Vector3.UP, direction.angle_to(angle))
-	
 	for node in new_assets:
 		add_child(node)
 		node.global_position = grid_to_world_pos_floor(cell.position, cell_scale)
