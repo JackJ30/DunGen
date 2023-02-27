@@ -18,3 +18,7 @@ config/icon="res://icon.svg"
 [autoload]
 
 Draw3D="*res://Global/Draw3D.gd"
+
+[dotnet]
+
+project/assembly_name="Dungen"

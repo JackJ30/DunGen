@@ -87,13 +87,16 @@ func create_hallways():
 
 func pathfind_hallways():
 	var pathfinder = DungeonGenPathfinder.new(size)
+	var test_pathfinder_script = load("res://Generation/Scripts/DungeonGenerationPathfinding.cs")
+	var test_pathfinder = test_pathfinder_script.new()
+	test_pathfinder.TestFunction()
 	
 	for edge in selected_edges:
 		var start_room : Room = edge.u.data
 		var end_room : Room = edge.v.data
 		
-		var start_pos_f = start_room.bounds.position + Vector3(start_room.bounds.size.x, 0, start_room.bounds.size.z)
-		var end_pos_f = end_room.bounds.position + Vector3(end_room.bounds.size.x, 0, end_room.bounds.size.z)
+		var start_pos_f = start_room.bounds.get_center()
+		var end_pos_f = end_room.bounds.get_center()
 		var start_pos = Vector3i(start_pos_f)
 		var end_pos = Vector3i(end_pos_f)
 		

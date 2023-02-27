@@ -6,23 +6,6 @@ var queue : PriorityQueue
 var closed : Util.DictionarySet
 var stack : Array[Vector3i]
 
-var neighbors = [
-	Vector3i(1, 0, 0),
-	Vector3i(-1, 0, 0),
-	Vector3i(0, 0, 1),
-	Vector3i(0, 0, -1),
-
-	Vector3i(3, 1, 0),
-	Vector3i(-3, 1, 0),
-	Vector3i(0, 1, 3),
-	Vector3i(0, 1, -3),
-
-	Vector3i(3, -1, 0),
-	Vector3i(-3, -1, 0),
-	Vector3i(0, -1, 3),
-	Vector3i(0, -1, -3)
-] # TODO - Maybe make neighbors dynamically generated based on system that allows new types of vertical movement
-
 func _init(size : Vector3i):
 	grid = Grid3D.new(size,Vector3i.ZERO,func(position : Vector3i): return DNode.new(position))
 	
@@ -53,7 +36,7 @@ func find_path(start : Vector3i, end : Vector3i, costFunction : Callable):
 		if node.position == end:
 			return reconstruct_path(node)
 		
-		for offset in neighbors:
+		for offset in HallwayProcedure.get_possible_offsets():
 			if !grid.in_bounds(node.position + offset): 
 				continue
 			var neighbor : DNode = grid.grab(node.position + offset)
@@ -138,3 +121,17 @@ class PathCost: # TODO - THIS COULD CAUSE ISSUES BECAUSE OF INIT, I MADE EDUCATE
 	func _init():
 		is_stair = false
 		traversable = false
+
+class PathfindProcedure:
+	static func get_possible_offsets() -> Array[Vector3i]:
+		return [Vector3i.ZERO]
+	
+	var offset : Vector3i
+
+class HallwayProcedure extends PathfindProcedure:
+	static func get_possible_offsets() -> Array[Vector3i]:
+		return [ Vector3i(1, 0, 0), Vector3i(-1, 0, 0), Vector3i(0, 0, 1), Vector3i(0, 0, -1) ]
+
+class StairwayProcedure extends PathfindProcedure:
+	static func get_possible_offsets() -> Array[Vector3i]:
+		return [ Vector3i(3, 1, 0), Vector3i(-3, 1, 0), Vector3i(0, 1, 3), Vector3i(0, 1, -3), Vector3i(3, -1, 0), Vector3i(-3, -1, 0), Vector3i(0, -1, 3), Vector3i(0, -1, -3) ]
