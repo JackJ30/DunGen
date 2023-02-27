@@ -14,6 +14,7 @@ class_name DungeonGenerator
 @onready var visual_gen : DunngeonVisualGenerator = get_node("Visual Generator")
 var grid : Grid3D
 var rooms : Array[Room]
+var hallway : Array[Hallway]
 var selected_edges : Array[Delaunay3D.Edge]
 var delaunay : Delaunay3D
 var random : RandomNumberGenerator
@@ -36,7 +37,7 @@ func place_rooms():
 	var rooms_spawned : int = 0
 	var num_tries : int = 0
 	while rooms_spawned < room_count:
-		if num_tries > 350:
+		if num_tries > 500:
 			break
 		
 		num_tries += 1
@@ -90,8 +91,8 @@ func pathfind_hallways():
 		var start_room : Room = edge.u.data
 		var end_room : Room = edge.v.data
 		
-		var start_pos_f = start_room.bounds.get_center()
-		var end_pos_f = end_room.bounds.get_center()
+		var start_pos_f = start_room.bounds.position + Vector3(start_room.bounds.size.x, 0, start_room.bounds.size.z)
+		var end_pos_f = end_room.bounds.position + Vector3(end_room.bounds.size.x, 0, end_room.bounds.size.z)
 		var start_pos = Vector3i(start_pos_f)
 		var end_pos = Vector3i(end_pos_f)
 		
@@ -163,8 +164,8 @@ func display_cells():
 		for y in x:
 			for cell in y:
 				if(cell.cell_type == CellType.Room): visual_gen.display_room_cell(cell)
-				if(cell.cell_type == CellType.Hallway): visual_gen.display_hallway_cell(cell)
-				if(cell.cell_type == CellType.Stairs): visual_gen.display_stair_cell(cell)
+				if(cell.cell_type == CellType.Hallway): visual_gen.display_room_cell(cell)
+				if(cell.cell_type == CellType.Stairs): visual_gen.display_room_cell(cell)
 
 func display_edges(edges : Array[Delaunay3D.Edge]):
 	for edge in edges:
@@ -193,3 +194,7 @@ class Room:
 	
 	func intersect(other : Room):
 		return bounds.intersects(other.bounds)
+
+class Hallway:
+	func _init():
+		pass

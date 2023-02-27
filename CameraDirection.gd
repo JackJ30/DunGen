@@ -3,8 +3,6 @@ extends RichTextLabel
 @onready var camera = get_parent().get_parent()
 
 func _process(delta):
-	print(camera)
-	
 	var direction = get_parent().get_parent().get_global_transform().basis.z
 	var px_dist = direction.distance_squared_to(Vector3(1,0,0))
 	var nx_dist = direction.distance_squared_to(Vector3(-1,0,0))

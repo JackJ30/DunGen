@@ -13,12 +13,13 @@ class_name DunngeonVisualGenerator
 @export var room_wall0 : PackedScene
 @export var room_wall1 : PackedScene
 @export var room_wall2 : PackedScene
+@export var room_wall2_2 : PackedScene
 @export var room_wall3 : PackedScene
 
 var grid : Grid3D
 
 func room_neighbor_evaluator(type : DungeonGenerator.CellType):
-	return type == DungeonGenerator.CellType.Room
+	return type == DungeonGenerator.CellType.Room || type == DungeonGenerator.CellType.Hallway
 
 func display_room_cell(cell):
 	var new_assets = []
@@ -34,6 +35,7 @@ func display_room_cell(cell):
 	neighbors.append(int(has_neighbor(cell, Vector3i(0,0,-1),Callable(self,"room_neighbor_evaluator"))))
 	neighbors.append(int(has_neighbor(cell, Vector3i(1,0,0),Callable(self,"room_neighbor_evaluator"))))
 	neighbors.append(int(has_neighbor(cell, Vector3i(-1,0,0),Callable(self,"room_neighbor_evaluator"))))
+	var direction = Vector3(neighbors[2] - neighbors[3], 0, neighbors[0] - neighbors[1])
 	var num_neighbors = neighbors[0] + neighbors[1] + neighbors[2] + neighbors[3]
 	
 	if(num_neighbors != 4):
@@ -46,16 +48,23 @@ func display_room_cell(cell):
 			new_wall = room_wall1.instantiate()
 			tile_direction = Vector3(0,0,1)
 		if num_neighbors == 2:
-			new_wall = room_wall2.instantiate()
-			tile_direction = Vector3(1,0,1)
+			if direction.length_squared() == 0: # Straight Line
+				new_wall = room_wall2_2.instantiate()
+				tile_direction = Vector3(0,0,1)
+				
+				if neighbors[0] == 1 || neighbors[1] == 1:
+					direction.z = 1
+				if neighbors[2] == 1 || neighbors[2] == 1:
+					direction.x = 1
+			else: # Corner
+				new_wall = room_wall2.instantiate()
+				tile_direction = Vector3(1,0,1)
 		if num_neighbors == 3:
 			new_wall = room_wall3.instantiate()
 			tile_direction = Vector3(0,0,1)
 	
 		add_child(new_wall)
 		new_wall.global_position = grid_to_world_pos_floor(cell.position, cell_scale)
-		
-		var direction = Vector3(neighbors[2] - neighbors[3], 0, neighbors[0] - neighbors[1])
 			
 		var angle = atan2(tile_direction.z, tile_direction.x) - atan2(direction.z, direction.x)# direction.angle_to(tile_direction)
 		if angle < 0: angle += 2*PI

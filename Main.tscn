@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://snnj6rw0pbl2"]
+[gd_scene load_steps=18 format=3 uid="uid://cb8hudsjkk8uj"]
 
 [ext_resource type="Script" path="res://Generation/Scripts/DungeonGenerator.gd" id="1_fnvqc"]
 [ext_resource type="Script" path="res://Generation/Scripts/DungeonVisualGenerator.gd" id="2_33cg2"]
@@ -12,6 +12,7 @@
 [ext_resource type="PackedScene" uid="uid://by1u0sbv2ymei" path="res://Generation/Assets/room_wall_tile1.glb" id="9_8m41e"]
 [ext_resource type="PackedScene" uid="uid://b6qhfw1hfub8k" path="res://Generation/Assets/room_wall_tile2.glb" id="10_c7qao"]
 [ext_resource type="PackedScene" uid="uid://ci062wh708645" path="res://Generation/Assets/room_wall_tile3.glb" id="11_eewmn"]
+[ext_resource type="PackedScene" uid="uid://dw42vyo7vqvx1" path="res://Generation/Assets/room_wall_tile2_2.glb" id="11_qv10g"]
 [ext_resource type="Script" path="res://CameraDirection.gd" id="13_nvvuk"]
 
 [sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_uiymn"]
@@ -43,6 +44,7 @@ room_ceiling = ExtResource("7_4kutu")
 room_wall0 = ExtResource("8_qrgyu")
 room_wall1 = ExtResource("9_8m41e")
 room_wall2 = ExtResource("10_c7qao")
+room_wall2_2 = ExtResource("11_qv10g")
 room_wall3 = ExtResource("11_eewmn")
 
 [node name="Camera3D" type="Camera3D" parent="."]
