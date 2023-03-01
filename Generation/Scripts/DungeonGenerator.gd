@@ -87,9 +87,8 @@ func create_hallways():
 
 func pathfind_hallways():
 	var pathfinder = DungeonGenPathfinder.new(size)
-	var test_pathfinder_script = load("res://Generation/Scripts/DungeonGenerationPathfinding.cs")
+	var test_pathfinder_script = load("res://Generation/Scripts/DungeonGenerationPathfinding.cs") # TODO - Refactor script location
 	var test_pathfinder = test_pathfinder_script.new()
-	test_pathfinder.TestFunction()
 	
 	for edge in selected_edges:
 		var start_room : Room = edge.u.data
