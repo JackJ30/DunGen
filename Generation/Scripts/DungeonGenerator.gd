@@ -33,7 +33,7 @@ func _ready():
 	display_edges(selected_edges)
 	pathfind_hallways_CSharp()
 	#pathfind_hallways()
-	#display_cells()
+	display_cells()
 
 func place_rooms():
 	var rooms_spawned : int = 0
@@ -108,8 +108,14 @@ func pathfind_hallways_CSharp():
 		var start_pos = Vector3i(start_pos_f)
 		var end_pos = Vector3i(end_pos_f)
 		
-		print(pathfinder.FindPath(grid_csharp, start_pos, end_pos))
-	
+		var pathfind_results = pathfinder.FindPath(grid_csharp, start_pos, end_pos)
+		for procedure in pathfind_results:
+			print(procedure)
+			var cells_to_change = [procedure[1]]
+			cells_to_change.append_array(procedure[3])
+			
+			for position in cells_to_change:
+				grid.grab(position).cell_type = procedure[0] as CellType
 
 func pathfind_hallways():
 	var pathfinder = DungeonGenPathfinder.new(size)
