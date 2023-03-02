@@ -15,7 +15,7 @@ class_name DungeonGenerator
 var grid : Grid3D
 var rooms : Array[Room]
 var hallways : Array[Hallway]
-var stairs : Array[Stair]
+var stairs : Array[Stairway]
 var selected_edges : Array[Delaunay3D.Edge]
 var delaunay : Delaunay3D
 var random : RandomNumberGenerator
@@ -116,10 +116,10 @@ func pathfind_hallways():
 						var vertical_offset = Vector3i(0, delta.y, 0)
 						var horizontal_offset = Vector3i(xDir, 0, zDir)
 						
-						grid.grab(previous + horizontal_offset).cell_type = CellType.Stairs;
-						grid.grab(previous + horizontal_offset * 2).cell_type = CellType.Stairs;
-						grid.grab(previous + vertical_offset + horizontal_offset).cell_type = CellType.Stairs;
-						grid.grab(previous + vertical_offset + horizontal_offset * 2).cell_type = CellType.Stairs;
+						grid.grab(previous + horizontal_offset).cell_type = CellType.Stairway;
+						grid.grab(previous + horizontal_offset * 2).cell_type = CellType.Stairway;
+						grid.grab(previous + vertical_offset + horizontal_offset).cell_type = CellType.Stairway;
+						grid.grab(previous + vertical_offset + horizontal_offset * 2).cell_type = CellType.Stairway;
 
 func cost_function(a : DungeonGenPathfinder.DNode, b : DungeonGenPathfinder.DNode, start_pos : Vector3i, end_pos : Vector3i):
 	var path_cost = DungeonGenPathfinder.PathCost.new()
@@ -128,7 +128,7 @@ func cost_function(a : DungeonGenPathfinder.DNode, b : DungeonGenPathfinder.DNod
 	if delta.y == 0:
 		path_cost.cost = Vector3(b.position).distance_to(Vector3(end_pos))
 		
-		if grid.grab(b.position).cell_type == CellType.Stairs: return path_cost
+		if grid.grab(b.position).cell_type == CellType.Stairway: return path_cost
 		elif grid.grab(b.position).cell_type == CellType.Room: path_cost.cost += 5 # TODO - maybe make rooms non-traversable
 		elif grid.grab(b.position).cell_type == CellType.None: path_cost.cost += 1
 		
@@ -168,11 +168,18 @@ func display_cells():
 			for cell in y:
 				if(cell.cell_type == CellType.Room): visual_gen.display_room_cell(cell)
 				if(cell.cell_type == CellType.Hallway): visual_gen.display_room_cell(cell)
-				if(cell.cell_type == CellType.Stairs): visual_gen.display_room_cell(cell)
+				if(cell.cell_type == CellType.Stairway): visual_gen.display_room_cell(cell)
 
 func display_edges(edges : Array[Delaunay3D.Edge]):
 	for edge in edges:
 		Draw3D.line(edge.u.position,edge.v.position)
+
+enum CellType {
+	None,
+	Room,
+	Hallway,
+	Stairway
+}
 
 class Cell:
 	var cell_type : CellType
@@ -182,13 +189,6 @@ class Cell:
 	func _init(cell_type : CellType, position : Vector3i):
 		self.cell_type = cell_type
 		self.position = position
-
-enum CellType {
-	None,
-	Room,
-	Hallway,
-	Stairs
-}
 
 class Room:
 	var bounds : AABB
@@ -203,6 +203,6 @@ class Hallway:
 	func _init():
 		pass
 
-class Stair:
+class Stairway:
 	func _init():
 		pass

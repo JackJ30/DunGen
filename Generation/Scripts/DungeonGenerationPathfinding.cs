@@ -3,9 +3,17 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+public enum CellType {
+	None,
+	Room,
+	Hallway,
+	Stairway
+}
+
 public partial class DungeonGenerationPathfinding : Node
 {
 	Grid3D<DNode> grid;
+	Grid3D<CellType> existingGrid;
 	SimplePriorityQueue<DNode, float> queue;
 	HashSet<DNode> closed;
 	Stack<Vector3I> stack;
@@ -41,16 +49,33 @@ public partial class DungeonGenerationPathfinding : Node
 		}
 	}
 
-	public List<Vector3I> FindPath(Vector3I start, Vector3I end) {
+	public Godot.Collections.Array FindPath(Godot.Collections.Array existingGrid, Vector3I start, Vector3I end) {
 		ResetNodes();
 		queue.Clear();
 		closed.Clear();
+		
+		this.existingGrid = new Grid3D<CellType>(
+			new Vector3I(
+				((Godot.Collections.Array)existingGrid).Count(), 
+				((Godot.Collections.Array)((Godot.Collections.Array)existingGrid)[0]).Count(), 
+				((Godot.Collections.Array)((Godot.Collections.Array)((Godot.Collections.Array)existingGrid)[0])[0]).Count()
+			), Vector3I.Zero);
+		for (int x = 0; x < existingGrid.Count(); x++)
+		{
+			for (int y = 0; y < ((Godot.Collections.Array)existingGrid[x]).Count(); y++)
+			{
+				for (int z = 0; z < ((Godot.Collections.Array)((Godot.Collections.Array)existingGrid[x])[y]).Count(); z++)
+				{
+					this.existingGrid[x,y,z] = (CellType)(int)(((Godot.Collections.Array)((Godot.Collections.Array)((Godot.Collections.Array)existingGrid)[x])[y])[z]);
+				}
+			}
+		}
 
 		queue = new SimplePriorityQueue<DNode, float>();
 		closed = new HashSet<DNode>();
 
 		grid[start].Cost = 0.0f;
-		grid[start].Procedure = new StartProcedure(start, start);
+		grid[start].Procedure = new HallwayProcedure(start, start);
 		queue.Enqueue(grid[start], 0.0f);
 
 		while (queue.Count > 0) {
@@ -86,7 +111,7 @@ public partial class DungeonGenerationPathfinding : Node
 			if (node.PreviousSet.Contains(position)) return;
 		}
 
-		float cost = procedure.CalculateCost(end);
+		float cost = procedure.CalculateCost(end, existingGrid);
 		if (Math.Abs(-1f - cost) < 0.001f) return;
 
 		float newCost = node.Cost + cost;
@@ -112,8 +137,8 @@ public partial class DungeonGenerationPathfinding : Node
 		}
 	}
 
-	List<Vector3I> ReconstructPath(DNode node) { // TODO - UPDATE THIS
-		List<Vector3I> result = new List<Vector3I>();
+	Godot.Collections.Array ReconstructPath(DNode node) {
+		Godot.Collections.Array result = new Godot.Collections.Array();
 
 		while (node != null) {
 			stack.Push(node.Position);
@@ -121,7 +146,22 @@ public partial class DungeonGenerationPathfinding : Node
 		}
 
 		while (stack.Count > 0) {
-			result.Add(stack.Pop());
+			node = grid[stack.Pop()];
+			
+			Godot.Collections.Array procedureArray = new Godot.Collections.Array();
+			procedureArray.Add(node.Procedure.EnumValue);
+			procedureArray.Add(node.Procedure.StartPosition);
+			procedureArray.Add(node.Procedure.EndPosition);
+			
+			Godot.Collections.Array occupiedArray = new Godot.Collections.Array();
+			foreach(Vector3I position in node.Procedure.GetOccupiedPositions())
+			{
+				occupiedArray.Add(position);
+			}
+			
+			procedureArray.Add(occupiedArray);
+			
+			result.Add(procedureArray);
 		}
 
 		return result;
@@ -146,6 +186,7 @@ public class DNode
 public abstract class PathfindProcedure
 {
 	public float Cost { get; private set; }
+	public int EnumValue { get; protected set; }
 	public Vector3I StartPosition;
 	public Vector3I EndPosition;
 	
@@ -157,7 +198,7 @@ public abstract class PathfindProcedure
 	
 	public abstract Vector3I[] GetOccupiedPositions();
 	
-	public virtual float CalculateCost(Vector3I targetPos) // -1f = non-traversable
+	public virtual float CalculateCost(Vector3I targetPos, Grid3D<CellType> grid) // -1f = non-traversable
 	{
 		return 0.0f;
 	}
@@ -167,7 +208,7 @@ public class StartProcedure : PathfindProcedure
 {
 	public StartProcedure(Vector3I startPosition, Vector3I endPosition) : base(startPosition, endPosition)
 	{
-		
+		EnumValue = -1;
 	}
 	
 	public override Vector3I[] GetOccupiedPositions()
@@ -180,7 +221,7 @@ public class HallwayProcedure : PathfindProcedure
 {
 	public HallwayProcedure(Vector3I startPosition, Vector3I endPosition) : base(startPosition, endPosition)
 	{
-		
+		EnumValue = 1;
 	}
 	
 	public override Vector3I[] GetOccupiedPositions()
@@ -188,18 +229,16 @@ public class HallwayProcedure : PathfindProcedure
 		return new Vector3I[] { };
 	}
 	
-	public override float CalculateCost(Vector3I targetPos)
+	public override float CalculateCost(Vector3I targetPos, Grid3D<CellType> grid)
 	{
 		float cost = ((Vector3)EndPosition).DistanceTo((Vector3)targetPos);    //heuristic
-
-		if (grid[EndPosition] == CellType.Stairs) {
+		if (grid[EndPosition] == CellType.Stairway) {
 			return -1f;
 		} else if (grid[EndPosition] == CellType.Room) {
 			cost += 5f;
 		} else if (grid[EndPosition] == CellType.None) {
 			cost += 1f;
 		}
-
 		return cost;
 	}
 	
@@ -218,6 +257,7 @@ public class StairwayProcedure : PathfindProcedure
 	public StairwayProcedure(Vector3I startPosition, Vector3I endPosition) : base(startPosition, endPosition)
 	{
 		// Assuming VALID
+		EnumValue = 2;
 		
 		direction = endPosition - startPosition;
 		direction.Y = 0;
@@ -235,7 +275,7 @@ public class StairwayProcedure : PathfindProcedure
 		return positions;
 	}
 	
-	public override float CalculateCost(Vector3I targetPos)
+	public override float CalculateCost(Vector3I targetPos, Grid3D<CellType> grid)
 	{
 		if ((grid[StartPosition] != CellType.None && grid[StartPosition] != CellType.Hallway)
 				|| (grid[EndPosition] != CellType.None && grid[EndPosition] != CellType.Hallway)) return -1f;
