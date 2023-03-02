@@ -31,8 +31,9 @@ func _ready():
 	triangulate()
 	create_hallways()
 	display_edges(selected_edges)
-	pathfind_hallways()
-	display_cells()
+	pathfind_hallways_CSharp()
+	#pathfind_hallways()
+	#display_cells()
 
 func place_rooms():
 	var rooms_spawned : int = 0
@@ -85,10 +86,33 @@ func create_hallways():
 		if random.randf_range(0.0,1.0) < extra_hallway_chance:
 			selected_edges.append(edge)
 
+func pathfind_hallways_CSharp():
+	var pathfinder_script = load("res://Generation/Scripts/DungeonGenerationPathfinding.cs") # TODO - Refactor script location
+	var pathfinder = pathfinder_script.new()
+	pathfinder.Initialize(size)
+	
+	var grid_csharp = []
+	for x in range(size.x):
+		grid_csharp.append([])
+		for y in range(size.y):
+			grid_csharp[x].append([])
+			for z in range(size.z):
+				grid_csharp[x][y].append(grid.grab(Vector3i(x,y,z)))
+	
+	for edge in selected_edges:
+		var start_room : Room = edge.u.data
+		var end_room : Room = edge.v.data
+		
+		var start_pos_f = start_room.bounds.get_center()
+		var end_pos_f = end_room.bounds.get_center()
+		var start_pos = Vector3i(start_pos_f)
+		var end_pos = Vector3i(end_pos_f)
+		
+		print(pathfinder.FindPath(grid_csharp, start_pos, end_pos))
+	
+
 func pathfind_hallways():
 	var pathfinder = DungeonGenPathfinder.new(size)
-	var test_pathfinder_script = load("res://Generation/Scripts/DungeonGenerationPathfinding.cs") # TODO - Refactor script location
-	var test_pathfinder = test_pathfinder_script.new()
 	
 	for edge in selected_edges:
 		var start_room : Room = edge.u.data

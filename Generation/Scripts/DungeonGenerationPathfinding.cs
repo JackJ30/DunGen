@@ -43,6 +43,7 @@ public partial class DungeonGenerationPathfinding : Node
 					var node = grid[x, y, z];
 					node.Previous = null;
 					node.Cost = float.PositiveInfinity;
+					node.Procedure = null;
 					node.PreviousSet.Clear();
 				}
 			}
@@ -119,6 +120,7 @@ public partial class DungeonGenerationPathfinding : Node
 		if (newCost < neighbor.Cost) {
 			neighbor.Previous = node;
 			neighbor.Cost = newCost;
+			neighbor.Procedure = procedure;
 
 			if (queue.TryGetPriority(node, out float existingPriority)) {
 				queue.UpdatePriority(node, newCost);
@@ -221,7 +223,7 @@ public class HallwayProcedure : PathfindProcedure
 {
 	public HallwayProcedure(Vector3I startPosition, Vector3I endPosition) : base(startPosition, endPosition)
 	{
-		EnumValue = 1;
+		EnumValue = 2;
 	}
 	
 	public override Vector3I[] GetOccupiedPositions()
@@ -257,7 +259,7 @@ public class StairwayProcedure : PathfindProcedure
 	public StairwayProcedure(Vector3I startPosition, Vector3I endPosition) : base(startPosition, endPosition)
 	{
 		// Assuming VALID
-		EnumValue = 2;
+		EnumValue = 3;
 		
 		direction = endPosition - startPosition;
 		direction.Y = 0;
