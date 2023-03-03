@@ -71,7 +71,7 @@ public partial class DungeonGenerationPathfinding : Node
 				}
 			}
 		}
-
+		
 		queue = new SimplePriorityQueue<DNode, float>();
 		closed = new HashSet<DNode>();
 
@@ -254,25 +254,27 @@ public class HallwayProcedure : PathfindProcedure
 
 public class StairwayProcedure : PathfindProcedure
 {
-	Vector3I direction;
+	Vector3I directionXZ;
+	int directionY;
 	
 	public StairwayProcedure(Vector3I startPosition, Vector3I endPosition) : base(startPosition, endPosition)
 	{
 		// Assuming VALID
 		EnumValue = 3;
 		
-		direction = endPosition - startPosition;
-		direction.Y = 0;
-		direction = direction / 3;
+		directionXZ = endPosition - startPosition;
+		directionY = directionXZ.Y;
+		directionXZ.Y = 0;
+		directionXZ = directionXZ / 3;
 	}
 	
 	public override Vector3I[] GetOccupiedPositions()
 	{
 		Vector3I[] positions = new Vector3I[4];
-		positions[0] = EndPosition + direction;
-		positions[1] = EndPosition + (direction * 2);
-		positions[2] = EndPosition + direction + Vector3I.Up;
-		positions[3] = EndPosition + (direction * 2) + Vector3I.Up;
+		positions[0] = StartPosition + directionXZ;
+		positions[1] = StartPosition + (directionXZ * 2);
+		positions[2] = StartPosition + directionXZ + (Vector3I.Up * directionY);
+		positions[3] = StartPosition + (directionXZ * 2) + (Vector3I.Up * directionY);
 		
 		return positions;
 	}

@@ -18,23 +18,30 @@ class_name DunngeonVisualGenerator
 
 var grid : Grid3D
 
-func room_neighbor_evaluator(type : DungeonGenerator.CellType):
-	return type == DungeonGenerator.CellType.Room || type == DungeonGenerator.CellType.Hallway
+func room_neighbor_evaluator(cell, delta):
+	if(cell.is_empty()): return false
+	return (cell.nav_objects[0] is DungeonGenerator.Room || (
+		cell.nav_objects[0] is DungeonGenerator.Hallway && (cell.nav_objects[0].start == cell.position) || (cell.nav_objects[0].end == cell.position))
+		)
 
-func display_room_cell(cell):
+func hallway_neighbor_evaluator(cell, delta):
+	if(cell.is_empty()): return false
+	return (cell.nav_objects[0] is DungeonGenerator.Hallway) && (delta.y == 0)
+
+func display_cell(cell, evaluator : String):
 	var new_assets = []
-	if !has_neighbor(cell, Vector3i.DOWN, Callable(self,"room_neighbor_evaluator")):
+	if !has_neighbor(cell, Vector3i.DOWN, Callable(self,evaluator)):
 		new_assets.append(room_floor.instantiate())
-	if !has_neighbor(cell, Vector3i.UP, Callable(self,"room_neighbor_evaluator")):
+	if !has_neighbor(cell, Vector3i.UP, Callable(self,evaluator)):
 		new_assets.append(room_ceiling.instantiate())
 	
-	Callable(self,"room_neighbor_evaluator")
+	Callable(self,evaluator)
 	
 	var neighbors = []
-	neighbors.append(int(has_neighbor(cell, Vector3i(0,0,1),Callable(self,"room_neighbor_evaluator"))))
-	neighbors.append(int(has_neighbor(cell, Vector3i(0,0,-1),Callable(self,"room_neighbor_evaluator"))))
-	neighbors.append(int(has_neighbor(cell, Vector3i(1,0,0),Callable(self,"room_neighbor_evaluator"))))
-	neighbors.append(int(has_neighbor(cell, Vector3i(-1,0,0),Callable(self,"room_neighbor_evaluator"))))
+	neighbors.append(int(has_neighbor(cell, Vector3i(0,0,1),Callable(self,evaluator))))
+	neighbors.append(int(has_neighbor(cell, Vector3i(0,0,-1),Callable(self,evaluator))))
+	neighbors.append(int(has_neighbor(cell, Vector3i(1,0,0),Callable(self,evaluator))))
+	neighbors.append(int(has_neighbor(cell, Vector3i(-1,0,0),Callable(self,evaluator))))
 	var direction = Vector3(neighbors[2] - neighbors[3], 0, neighbors[0] - neighbors[1])
 	var num_neighbors = neighbors[0] + neighbors[1] + neighbors[2] + neighbors[3]
 	
@@ -77,13 +84,13 @@ func display_room_cell(cell):
 
 func display_hallway_cell(cell):
 	var new_cell = hallway_visual.instantiate()
-	new_cell.cell = cell
+	new_cell.global_position = grid_to_world_pos_floor(cell.position, cell_scale)
 	add_child(new_cell)
 
 func display_stair_cell(cell):
 	var new_cell = stair_visual.instantiate()
-	new_cell.cell = cell
 	add_child(new_cell)
+	new_cell.global_position = grid_to_world_pos_floor(cell.position, cell_scale)
 
 func display_room_cell_simple(cell):
 	var new_cell = room_visual.instantiate()
@@ -93,7 +100,7 @@ func display_room_cell_simple(cell):
 func has_neighbor(cell, offset : Vector3i, is_valid_type : Callable) -> bool:
 	if !grid.in_bounds(cell.position + offset): return false
 	
-	if is_valid_type.call(grid.grab(cell.position + offset).cell_type):
+	if is_valid_type.call(grid.grab(cell.position + offset), offset):
 		return true
 	
 	return false

@@ -1,13 +1,17 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=4 format=3 uid="uid://de06y4mlf4heu"]
 
 [ext_resource type="Script" path="res://Generation/Scripts/VisualCell.gd" id="1_rjo88"]
 
 [sub_resource type="BoxMesh" id="BoxMesh_562j0"]
+size = Vector3(1.52, 2.35, 1.52)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_e5k2r"]
 albedo_color = Color(0, 0.172549, 0.65098, 1)
 
-[node name="MeshInstance3D" type="MeshInstance3D"]
+[node name="MeshInstance3D" type="Node3D"]
+script = ExtResource("1_rjo88")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.175, 0)
 mesh = SubResource("BoxMesh_562j0")
 surface_material_override/0 = SubResource("StandardMaterial3D_e5k2r")
-script = ExtResource("1_rjo88")

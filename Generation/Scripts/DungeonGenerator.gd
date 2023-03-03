@@ -15,13 +15,13 @@ class_name DungeonGenerator
 var grid : Grid3D
 var rooms : Array[Room]
 var hallways : Array[Hallway]
-var stairs : Array[Stairway]
+var stairways : Array[Stairway]
 var selected_edges : Array[Delaunay3D.Edge]
 var delaunay : Delaunay3D
 var random : RandomNumberGenerator
 
 func _ready():
-	grid = Grid3D.new(size, Vector3i.ZERO, func(position : Vector3i): return Cell.new(CellType.None,position))
+	grid = Grid3D.new(size, Vector3i.ZERO, func(position : Vector3i): return Cell.new(position, null))
 	visual_gen.grid = grid
 	delaunay = Delaunay3D.new()
 	random = RandomNumberGenerator.new()
@@ -39,7 +39,7 @@ func place_rooms():
 	var rooms_spawned : int = 0
 	var num_tries : int = 0
 	while rooms_spawned < room_count:
-		if num_tries > 500:
+		if num_tries > 1000:
 			break
 		
 		num_tries += 1
@@ -60,7 +60,7 @@ func place_rooms():
 			continue;
 		
 		rooms.append(new_room)
-		grid.assign_mass(new_room.bounds, func(position : Vector3i): return Cell.new(CellType.Room, position))
+		new_room.assign_cells(grid)
 		rooms_spawned += 1
 		num_tries = 0
 
@@ -91,15 +91,24 @@ func pathfind_hallways_CSharp():
 	var pathfinder = pathfinder_script.new()
 	pathfinder.Initialize(size)
 	
-	var grid_csharp = []
-	for x in range(size.x):
-		grid_csharp.append([])
-		for y in range(size.y):
-			grid_csharp[x].append([])
-			for z in range(size.z):
-				grid_csharp[x][y].append(grid.grab(Vector3i(x,y,z)))
-	
 	for edge in selected_edges:
+		var grid_csharp = []
+		for x in range(size.x):
+			grid_csharp.append([])
+			for y in range(size.y):
+				grid_csharp[x].append([])
+				for z in range(size.z):
+					grid_csharp[x][y].resize(size.z)
+					var cell = grid.grab(Vector3i(x,y,z))
+					if cell.is_empty():
+						grid_csharp[x][y][z] = CellType.None
+					elif cell.nav_objects[0] is Room:
+						grid_csharp[x][y][z] = CellType.Room
+					elif cell.nav_objects[0] is Hallway:
+						grid_csharp[x][y][z] = CellType.Hallway
+					elif cell.nav_objects[0] is Stairway:
+						grid_csharp[x][y][z] = CellType.Stairway
+					
 		var start_room : Room = edge.u.data
 		var end_room : Room = edge.v.data
 		
@@ -109,96 +118,47 @@ func pathfind_hallways_CSharp():
 		var end_pos = Vector3i(end_pos_f)
 		
 		var pathfind_results = pathfinder.FindPath(grid_csharp, start_pos, end_pos)
-		for procedure in pathfind_results:
-			print(procedure)
-			var cells_to_change = [procedure[1]]
-			cells_to_change.append_array(procedure[3])
+		if pathfind_results == null: continue
+		
+		var nav : DungeonNavigationObject = null
+		var navs_to_add : Array[DungeonNavigationObject]
+		for i in range(pathfind_results.size()):
+			var procedure = pathfind_results[i]
 			
-			for position in cells_to_change:
-				grid.grab(position).cell_type = procedure[0] as CellType
-
-func pathfind_hallways():
-	var pathfinder = DungeonGenPathfinder.new(size)
-	
-	for edge in selected_edges:
-		var start_room : Room = edge.u.data
-		var end_room : Room = edge.v.data
-		
-		var start_pos_f = start_room.bounds.get_center()
-		var end_pos_f = end_room.bounds.get_center()
-		var start_pos = Vector3i(start_pos_f)
-		var end_pos = Vector3i(end_pos_f)
-		
-		var path = pathfinder.find_path(start_pos, end_pos, Callable(self, "cost_function"))
-		
-		if path != null:
-			for i in range(path.size()):
-				var current = path[i]
-				if grid.grab(current).cell_type == CellType.None: grid.grab(current).cell_type = CellType.Hallway
-				if i > 0:
-					var previous = path[i - 1]
-					var delta = current - previous
+			if procedure[0] == CellType.Hallway as int:
+				if !grid.grab(procedure[2]).is_empty(): continue
+				
+				if !(nav is Hallway):
+					if(nav != null): navs_to_add.append(nav)
 					
-					if delta.y != 0:
-						# TODO - REFACTOR FOR VERTICAL MOVEMENT REWORK (THIS CODE PIECE CHECKS ALL FOUR CELLS IN THE STAIRWAY)
-						var xDir : int = clamp(delta.x, -1, 1)
-						var zDir : int = clamp(delta.z, -1, 1)
-						var vertical_offset = Vector3i(0, delta.y, 0)
-						var horizontal_offset = Vector3i(xDir, 0, zDir)
-						
-						grid.grab(previous + horizontal_offset).cell_type = CellType.Stairway;
-						grid.grab(previous + horizontal_offset * 2).cell_type = CellType.Stairway;
-						grid.grab(previous + vertical_offset + horizontal_offset).cell_type = CellType.Stairway;
-						grid.grab(previous + vertical_offset + horizontal_offset * 2).cell_type = CellType.Stairway;
-
-func cost_function(a : DungeonGenPathfinder.DNode, b : DungeonGenPathfinder.DNode, start_pos : Vector3i, end_pos : Vector3i):
-	var path_cost = DungeonGenPathfinder.PathCost.new()
-	var delta = b.position - a.position
-	
-	if delta.y == 0:
-		path_cost.cost = Vector3(b.position).distance_to(Vector3(end_pos))
+					nav = Hallway.new()
+					nav.start = procedure[2]
+				
+				nav.occupied_spaces.append(procedure[2])
+				nav.end = procedure[2]
+			elif procedure[0] == CellType.Stairway as int:
+				if(nav != null): navs_to_add.append(nav)
+				
+				nav = Stairway.new()
+				nav.start = procedure[1]
+				nav.end = procedure[2]
+				nav.occupied_spaces.append_array(procedure[3])
+		if(nav != null): navs_to_add.append(nav)
 		
-		if grid.grab(b.position).cell_type == CellType.Stairway: return path_cost
-		elif grid.grab(b.position).cell_type == CellType.Room: path_cost.cost += 5 # TODO - maybe make rooms non-traversable
-		elif grid.grab(b.position).cell_type == CellType.None: path_cost.cost += 1
-		
-		path_cost.traversable = true
-	else:
-		if ((grid.grab(a.position).cell_type != CellType.None && grid.grab(a.position).cell_type != CellType.Hallway) || (grid.grab(b.position).cell_type != CellType.None && grid.grab(b.position).cell_type != CellType.Hallway)):
-			return path_cost
-		
-		path_cost.cost = 100 + Vector3(b.position).distance_to(Vector3(end_pos))
-		# TODO - REFACTOR FOR VERTICAL MOVEMENT REWORK (THIS CODE PIECE CHECKS ALL FOUR CELLS IN THE STAIRWAY)
-		var xDir : int = clamp(delta.x, -1, 1)
-		var zDir : int = clamp(delta.z, -1, 1)
-		var vertical_offset = Vector3i(0, delta.y, 0)
-		var horizontal_offset = Vector3i(xDir, 0, zDir)
-		
-		if (
-			!grid.in_bounds(a.position + vertical_offset) ||
-			!grid.in_bounds(a.position + horizontal_offset) ||
-			!grid.in_bounds(a.position + vertical_offset + horizontal_offset)
-		): return path_cost
-		
-		if(
-			grid.grab(a.position + horizontal_offset).cell_type != CellType.None ||
-			grid.grab(a.position + horizontal_offset * 2).cell_type != CellType.None ||
-			grid.grab(a.position + vertical_offset + horizontal_offset).cell_type != CellType.None ||
-			grid.grab(a.position + vertical_offset + horizontal_offset * 2).cell_type != CellType.None
-		): return path_cost
-		
-		path_cost.traversable = true
-		path_cost.is_stair = true
-	
-	return path_cost
+		for add_nav in navs_to_add:
+			if add_nav is Hallway:
+				hallways.append(add_nav)
+			elif add_nav is Stairway:
+				stairways.append(add_nav)
+			add_nav.assign_cells(grid)
 
 func display_cells():
 	for x in grid.data:
 		for y in x:
 			for cell in y:
-				if(cell.cell_type == CellType.Room): visual_gen.display_room_cell(cell)
-				if(cell.cell_type == CellType.Hallway): visual_gen.display_room_cell(cell)
-				if(cell.cell_type == CellType.Stairway): visual_gen.display_room_cell(cell)
+				if(cell.nav_objects[0] is Room): visual_gen.display_cell(cell, "room_neighbor_evaluator")
+				if(cell.nav_objects[0] is Hallway): visual_gen.display_cell(cell, "hallway_neighbor_evaluator")
+				if(cell.nav_objects[0] is Stairway): visual_gen.display_stair_cell(cell)
 
 func display_edges(edges : Array[Delaunay3D.Edge]):
 	for edge in edges:
@@ -212,15 +172,33 @@ enum CellType {
 }
 
 class Cell:
-	var cell_type : CellType
+	var nav_objects : Array[DungeonNavigationObject]
 	var collection
 	var position : Vector3i
 	
-	func _init(cell_type : CellType, position : Vector3i):
-		self.cell_type = cell_type
+	func _init(position : Vector3i, nav_object : DungeonNavigationObject):
 		self.position = position
+		self.nav_objects = [nav_object]
+	
+	func add_nav_object(nav_object : DungeonNavigationObject):
+		if nav_objects[0] == null:
+			nav_objects.clear()
+		
+		nav_objects.append(nav_object)
+	
+	func is_empty():
+		return nav_objects.is_empty() || nav_objects[0] == null
 
-class Room:
+class DungeonNavigationObject:
+	var start : Vector3i
+	var end : Vector3i
+	var occupied_spaces : Array[Vector3i]
+	
+	func assign_cells(grid : Grid3D):
+		for position in occupied_spaces:
+			grid.grab(position).add_nav_object(self)
+
+class Room extends DungeonNavigationObject:
 	var bounds : AABB
 	
 	func _init(position : Vector3i, size : Vector3i):
@@ -228,11 +206,18 @@ class Room:
 	
 	func intersect(other : Room):
 		return bounds.intersects(other.bounds)
+	
+	func assign_cells(grid : Grid3D):
+		grid.assign_mass(bounds, func(position : Vector3i): return Cell.new(position, self))
 
-class Hallway:
+class Hallway extends DungeonNavigationObject:
 	func _init():
 		pass
+	
+	func assign_cells(grid : Grid3D):
+		for position in occupied_spaces:
+			grid.grab(position).add_nav_object(self)
 
-class Stairway:
+class Stairway extends DungeonNavigationObject:
 	func _init():
 		pass

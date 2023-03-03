@@ -4,7 +4,7 @@
 [ext_resource type="Script" path="res://Generation/Scripts/DungeonVisualGenerator.gd" id="2_33cg2"]
 [ext_resource type="PackedScene" path="res://Generation/Scenes/RoomCellVisual.tscn" id="3_rgkjh"]
 [ext_resource type="PackedScene" path="res://Generation/Scenes/RoomHallwayVisual.tscn" id="4_vo7d5"]
-[ext_resource type="PackedScene" path="res://Generation/Scenes/RoomStairVisual.tscn" id="5_3l8ti"]
+[ext_resource type="PackedScene" uid="uid://de06y4mlf4heu" path="res://Generation/Scenes/RoomStairVisual.tscn" id="5_3l8ti"]
 [ext_resource type="Script" path="res://Entities/Camera/FreeLookCamera.gd" id="6_coguf"]
 [ext_resource type="PackedScene" uid="uid://431cysbvo4hj" path="res://Generation/Assets/room_floor_tile.glb" id="6_gadw4"]
 [ext_resource type="PackedScene" uid="uid://bob2dkn732byi" path="res://Generation/Assets/room_ceiling_tile.glb" id="7_4kutu"]
@@ -29,7 +29,7 @@ sky = SubResource("Sky_cpprc")
 [node name="Generator" type="Node" parent="."]
 script = ExtResource("1_fnvqc")
 size = Vector3i(40, 6, 40)
-room_count = 6
+room_count = 12
 room_max_size = Vector3i(6, 2, 6)
 room_min_size = Vector3i(2, 1, 2)
 extra_hallway_chance = 0.05
