@@ -126,7 +126,11 @@ func pathfind_hallways_CSharp():
 			var procedure = pathfind_results[i]
 			
 			if procedure[0] == CellType.Hallway as int:
-				if !grid.grab(procedure[2]).is_empty(): continue
+				if !grid.grab(procedure[2]).is_empty():
+					if grid.grab(procedure[2]).nav_objects[0] is Room && !(grid.grab(procedure[1]).nav_objects[0] is Room):
+						# if is in room and one before is not, place connection
+						nav.connections.append(DungeonNavigationConnection.new([procedure[1],procedure[2]]))
+					continue
 				
 				if !(nav is Hallway):
 					if(nav != null): navs_to_add.append(nav)
@@ -136,6 +140,11 @@ func pathfind_hallways_CSharp():
 				
 				nav.occupied_spaces.append(procedure[2])
 				nav.end = procedure[2]
+				
+				# if one before is in room, place door
+				if grid.grab(procedure[1]).nav_objects[0] is Room:
+					nav.connections.append(DungeonNavigationConnection.new([procedure[1],procedure[2]]))
+				
 			elif procedure[0] == CellType.Stairway as int:
 				if(nav != null): navs_to_add.append(nav)
 				
@@ -143,6 +152,12 @@ func pathfind_hallways_CSharp():
 				nav.start = procedure[1]
 				nav.end = procedure[2]
 				nav.occupied_spaces.append_array(procedure[3])
+				navs_to_add.append(nav)
+				
+				nav = Hallway.new()
+				nav.start = procedure[2]
+				nav.end = procedure[2]
+				nav.occupied_spaces.append(procedure[2])
 		if(nav != null): navs_to_add.append(nav)
 		
 		for add_nav in navs_to_add:
@@ -193,6 +208,7 @@ class DungeonNavigationObject:
 	var start : Vector3i
 	var end : Vector3i
 	var occupied_spaces : Array[Vector3i]
+	var connections : Array[DungeonNavigationConnection]
 	
 	func assign_cells(grid : Grid3D):
 		for position in occupied_spaces:
@@ -221,3 +237,9 @@ class Hallway extends DungeonNavigationObject:
 class Stairway extends DungeonNavigationObject:
 	func _init():
 		pass
+
+class DungeonNavigationConnection:
+	var connected_positions : Array[Vector3i]
+	
+	func _init(connected_positions : Array[Vector3i]):
+		self.connected_positions = connected_positions

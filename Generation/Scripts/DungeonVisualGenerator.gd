@@ -18,15 +18,27 @@ class_name DunngeonVisualGenerator
 
 var grid : Grid3D
 
-func room_neighbor_evaluator(cell, delta):
-	if(cell.is_empty()): return false
-	return (cell.nav_objects[0] is DungeonGenerator.Room || (
-		cell.nav_objects[0] is DungeonGenerator.Hallway && (cell.nav_objects[0].start == cell.position) || (cell.nav_objects[0].end == cell.position))
-		)
+func room_neighbor_evaluator(cell_from, cell_to, delta):
+	if(cell_to.is_empty()): return false
+	for nav_object in cell_to.nav_objects:
+		for connection in nav_object.connections:
+			if connection.connected_positions.has(cell_from.position) && connection.connected_positions.has(cell_to.position):
+				return true;
+	if cell_from.nav_objects[0] != cell_to.nav_objects[0]: return false
+		
+	if !(cell_to.nav_objects[0] is DungeonGenerator.Room): return false
+	return true
 
-func hallway_neighbor_evaluator(cell, delta):
-	if(cell.is_empty()): return false
-	return (cell.nav_objects[0] is DungeonGenerator.Hallway) && (delta.y == 0)
+func hallway_neighbor_evaluator(cell_from, cell_to, delta):
+	if(cell_to.is_empty()): return false
+	if(delta.y != 0): return false
+	
+	for nav_object in cell_from.nav_objects:
+		for connection in nav_object.connections:
+			if connection.connected_positions.has(cell_from.position) && connection.connected_positions.has(cell_to.position):
+				return true;
+	
+	return (cell_to.nav_objects[0] is DungeonGenerator.Hallway)
 
 func display_cell(cell, evaluator : String):
 	var new_assets = []
@@ -100,7 +112,7 @@ func display_room_cell_simple(cell):
 func has_neighbor(cell, offset : Vector3i, is_valid_type : Callable) -> bool:
 	if !grid.in_bounds(cell.position + offset): return false
 	
-	if is_valid_type.call(grid.grab(cell.position + offset), offset):
+	if is_valid_type.call(cell, grid.grab(cell.position + offset), offset):
 		return true
 	
 	return false

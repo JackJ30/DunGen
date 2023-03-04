@@ -162,6 +162,7 @@ public partial class DungeonGenerationPathfinding : Node
 			}
 			
 			procedureArray.Add(occupiedArray);
+			procedureArray.Add(node.Procedure.directionXZ);
 			
 			result.Add(procedureArray);
 		}
@@ -192,10 +193,18 @@ public abstract class PathfindProcedure
 	public Vector3I StartPosition;
 	public Vector3I EndPosition;
 	
+	public Vector3I directionXZ;
+	public int directionY;
+	
 	public PathfindProcedure(Vector3I startPosition, Vector3I endPosition)
 	{
 		StartPosition = startPosition;
 		EndPosition = endPosition;
+		
+		directionXZ = endPosition - startPosition;
+		directionY = directionXZ.Y;
+		directionXZ.Y = 0;
+		directionXZ = directionXZ / 3;
 	}
 	
 	public abstract Vector3I[] GetOccupiedPositions();
@@ -254,18 +263,10 @@ public class HallwayProcedure : PathfindProcedure
 
 public class StairwayProcedure : PathfindProcedure
 {
-	Vector3I directionXZ;
-	int directionY;
-	
 	public StairwayProcedure(Vector3I startPosition, Vector3I endPosition) : base(startPosition, endPosition)
 	{
 		// Assuming VALID
 		EnumValue = 3;
-		
-		directionXZ = endPosition - startPosition;
-		directionY = directionXZ.Y;
-		directionXZ.Y = 0;
-		directionXZ = directionXZ / 3;
 	}
 	
 	public override Vector3I[] GetOccupiedPositions()
