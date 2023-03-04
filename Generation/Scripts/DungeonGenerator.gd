@@ -85,7 +85,8 @@ func create_hallways():
 	for edge in remaining_edges:
 		if random.randf_range(0.0,1.0) < extra_hallway_chance:
 			selected_edges.append(edge)
-
+ 
+## IMPORTANT INFO - OCCUPIED POSITIONS ARE THE ONES THAT ARE ACTUALLY PLACED
 func pathfind_hallways_CSharp():
 	var pathfinder_script = load("res://Generation/Scripts/DungeonGenerationPathfinding.cs") # TODO - Refactor script location
 	var pathfinder = pathfinder_script.new()
@@ -125,11 +126,11 @@ func pathfind_hallways_CSharp():
 		for i in range(pathfind_results.size()):
 			var procedure = pathfind_results[i]
 			
-			if procedure[0] == CellType.Hallway as int:
+			if procedure[0] == CellType.Hallway as int: #HALLWAY
 				if !grid.grab(procedure[2]).is_empty():
 					if grid.grab(procedure[2]).nav_objects[0] is Room && !(grid.grab(procedure[1]).nav_objects[0] is Room):
 						# if is in room and one before is not, place connection
-						nav.connections.append(DungeonNavigationConnection.new([procedure[1],procedure[2]]))
+						if (nav != null): nav.connections.append(DungeonNavigationConnection.new([procedure[1],procedure[2]]))
 					continue
 				
 				if !(nav is Hallway):
@@ -141,11 +142,11 @@ func pathfind_hallways_CSharp():
 				nav.occupied_spaces.append(procedure[2])
 				nav.end = procedure[2]
 				
-				# if one before is in room, place door
+				# if one before is in room, place connection
 				if grid.grab(procedure[1]).nav_objects[0] is Room:
 					nav.connections.append(DungeonNavigationConnection.new([procedure[1],procedure[2]]))
 				
-			elif procedure[0] == CellType.Stairway as int:
+			elif procedure[0] == CellType.Stairway as int: # STAIRWAY
 				if(nav != null): navs_to_add.append(nav)
 				
 				nav = Stairway.new()
@@ -153,6 +154,9 @@ func pathfind_hallways_CSharp():
 				nav.end = procedure[2]
 				nav.occupied_spaces.append_array(procedure[3])
 				navs_to_add.append(nav)
+				
+				nav.connections.append(DungeonNavigationConnection.new([nav.start,nav.occupied_spaces[0]]))
+				nav.connections.append(DungeonNavigationConnection.new([nav.end,nav.occupied_spaces[3]]))
 				
 				nav = Hallway.new()
 				nav.start = procedure[2]
@@ -173,7 +177,7 @@ func display_cells():
 			for cell in y:
 				if(cell.nav_objects[0] is Room): visual_gen.display_cell(cell, "room_neighbor_evaluator")
 				if(cell.nav_objects[0] is Hallway): visual_gen.display_cell(cell, "hallway_neighbor_evaluator")
-				if(cell.nav_objects[0] is Stairway): visual_gen.display_stair_cell(cell)
+				if(cell.nav_objects[0] is Stairway): visual_gen.display_cell(cell, "stairway_neighbor_evaluator")
 
 func display_edges(edges : Array[Delaunay3D.Edge]):
 	for edge in edges:
@@ -213,6 +217,16 @@ class DungeonNavigationObject:
 	func assign_cells(grid : Grid3D):
 		for position in occupied_spaces:
 			grid.grab(position).add_nav_object(self)
+	
+	func check_connections(cell_from,cell_to) -> bool:
+		var nav_objects = cell_from.nav_objects
+		nav_objects.append_array(cell_to.nav_objects)
+		for nav_object in nav_objects:
+			for connection in nav_object.connections:
+				if connection.connected_positions.has(cell_from.position) && connection.connected_positions.has(cell_to.position):
+					return true;
+		
+		return false;
 
 class Room extends DungeonNavigationObject:
 	var bounds : AABB

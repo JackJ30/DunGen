@@ -20,10 +20,10 @@ var grid : Grid3D
 
 func room_neighbor_evaluator(cell_from, cell_to, delta):
 	if(cell_to.is_empty()): return false
-	for nav_object in cell_to.nav_objects:
-		for connection in nav_object.connections:
-			if connection.connected_positions.has(cell_from.position) && connection.connected_positions.has(cell_to.position):
-				return true;
+	
+	if(cell_from.nav_objects[0].check_connections(cell_from,cell_to)):
+		return true;
+	
 	if cell_from.nav_objects[0] != cell_to.nav_objects[0]: return false
 		
 	if !(cell_to.nav_objects[0] is DungeonGenerator.Room): return false
@@ -33,12 +33,21 @@ func hallway_neighbor_evaluator(cell_from, cell_to, delta):
 	if(cell_to.is_empty()): return false
 	if(delta.y != 0): return false
 	
-	for nav_object in cell_from.nav_objects:
-		for connection in nav_object.connections:
-			if connection.connected_positions.has(cell_from.position) && connection.connected_positions.has(cell_to.position):
-				return true;
+	if(cell_from.nav_objects[0].check_connections(cell_from,cell_to)):
+		return true;
 	
 	return (cell_to.nav_objects[0] is DungeonGenerator.Hallway)
+
+func stairway_neighbor_evaluator(cell_from, cell_to, delta):
+	if(cell_to.is_empty()): return false
+	
+	if(cell_from.nav_objects[0].check_connections(cell_from,cell_to)):
+		return true;
+	
+	if cell_from.nav_objects[0] != cell_to.nav_objects[0]: return false
+	
+	return true;
+
 
 func display_cell(cell, evaluator : String):
 	var new_assets = []
