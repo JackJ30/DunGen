@@ -1,9 +1,6 @@
 extends Node3D
 class_name DunngeonVisualGenerator
 
-@export var room_visual : PackedScene
-@export var hallway_visual : PackedScene
-@export var stair_visual : PackedScene
 @export var cell_scale = Vector2(1.52,2.35)
 
 @export_category("Visual Assets")
@@ -15,6 +12,7 @@ class_name DunngeonVisualGenerator
 @export var room_wall2 : PackedScene
 @export var room_wall2_2 : PackedScene
 @export var room_wall3 : PackedScene
+@export var hallway_stair : PackedScene
 
 var grid : Grid3D
 
@@ -47,7 +45,6 @@ func stairway_neighbor_evaluator(cell_from, cell_to, delta):
 	if cell_from.nav_objects[0] != cell_to.nav_objects[0]: return false
 	
 	return true;
-
 
 func display_cell(cell, evaluator : String):
 	var new_assets = []
@@ -92,7 +89,7 @@ func display_cell(cell, evaluator : String):
 			tile_direction = Vector3(0,0,1)
 	
 		add_child(new_wall)
-		new_wall.global_position = grid_to_world_pos_floor(cell.position, cell_scale)
+		new_wall.global_position = grid_to_world_pos_floor(Vector3(cell.position), cell_scale)
 			
 		var angle = atan2(tile_direction.z, tile_direction.x) - atan2(direction.z, direction.x)# direction.angle_to(tile_direction)
 		if angle < 0: angle += 2*PI
@@ -101,22 +98,32 @@ func display_cell(cell, evaluator : String):
 		
 	for node in new_assets:
 		add_child(node)
-		node.global_position = grid_to_world_pos_floor(cell.position, cell_scale)
+		node.global_position = grid_to_world_pos_floor(Vector3(cell.position), cell_scale) 
 
-func display_hallway_cell(cell):
-	var new_cell = hallway_visual.instantiate()
-	new_cell.global_position = grid_to_world_pos_floor(cell.position, cell_scale)
-	add_child(new_cell)
-
-func display_stair_cell(cell):
-	var new_cell = stair_visual.instantiate()
-	add_child(new_cell)
-	new_cell.global_position = grid_to_world_pos_floor(cell.position, cell_scale)
-
-func display_room_cell_simple(cell):
-	var new_cell = room_visual.instantiate()
-	new_cell.cell = cell
-	add_child(new_cell)
+func display_stairway(stairway : DungeonGenerator.Stairway):
+	var new_stairway = hallway_stair.instantiate()
+	add_child(new_stairway)
+	
+	var mean_position_x = 0
+	var mean_position_y = 0
+	var mean_position_z = 0
+	
+	for position in stairway.occupied_spaces:
+		mean_position_x += position.x as float
+		mean_position_y += position.y as float
+		mean_position_z += position.z as float
+	
+	mean_position_x /= stairway.occupied_spaces.size()
+	mean_position_y /= stairway.occupied_spaces.size()
+	mean_position_z /= stairway.occupied_spaces.size()
+	
+	new_stairway.global_position = grid_to_world_pos_floor(Vector3(mean_position_x, mean_position_y, mean_position_z), cell_scale)
+	var trueDirection = stairway.directionXZ
+	if stairway.start.y > stairway.end.y: trueDirection = trueDirection * -1.0
+	var angle = atan2(1,0) - atan2(trueDirection.z, trueDirection.x)# direction.angle_to(tile_direction)
+	if angle < 0: angle += 2*PI
+	
+	new_stairway.global_rotation.y = angle
 
 func has_neighbor(cell, offset : Vector3i, is_valid_type : Callable) -> bool:
 	if !grid.in_bounds(cell.position + offset): return false
@@ -126,5 +133,8 @@ func has_neighbor(cell, offset : Vector3i, is_valid_type : Callable) -> bool:
 	
 	return false
 
-func grid_to_world_pos_floor(pos : Vector3i, scale : Vector2):
+func grid_to_world_pos_floor(pos : Vector3, scale : Vector2):
 	return Vector3(pos) * Vector3(scale.x,scale.y,scale.x) + (Vector3.DOWN * (scale.y / 2))
+
+func grid_to_world_pos(pos : Vector3, scale : Vector2):
+	return Vector3(pos) * Vector3(scale.x,scale.y,scale.x)

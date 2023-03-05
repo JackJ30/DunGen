@@ -1,0 +1,5 @@
+[gd_scene load_steps=2 format=3 uid="uid://cqcawalv7h5hx"]
+
+[ext_resource type="PackedScene" uid="uid://thtxert26ede" path="res://Generation/Assets/stairway_model.glb" id="1_j2t2s"]
+
+[node name="stairway_model" instance=ExtResource("1_j2t2s")]

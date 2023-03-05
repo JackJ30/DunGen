@@ -34,6 +34,7 @@ func _ready():
 	pathfind_hallways_CSharp()
 	#pathfind_hallways()
 	display_cells()
+	display_stairways()
 
 func place_rooms():
 	var rooms_spawned : int = 0
@@ -153,10 +154,10 @@ func pathfind_hallways_CSharp():
 				nav.start = procedure[1]
 				nav.end = procedure[2]
 				nav.occupied_spaces.append_array(procedure[3])
-				navs_to_add.append(nav)
-				
 				nav.connections.append(DungeonNavigationConnection.new([nav.start,nav.occupied_spaces[0]]))
 				nav.connections.append(DungeonNavigationConnection.new([nav.end,nav.occupied_spaces[3]]))
+				nav.directionXZ = procedure[4]
+				navs_to_add.append(nav)
 				
 				nav = Hallway.new()
 				nav.start = procedure[2]
@@ -178,6 +179,10 @@ func display_cells():
 				if(cell.nav_objects[0] is Room): visual_gen.display_cell(cell, "room_neighbor_evaluator")
 				if(cell.nav_objects[0] is Hallway): visual_gen.display_cell(cell, "hallway_neighbor_evaluator")
 				if(cell.nav_objects[0] is Stairway): visual_gen.display_cell(cell, "stairway_neighbor_evaluator")
+
+func display_stairways():
+	for stairway in stairways:
+		visual_gen.display_stairway(stairway)
 
 func display_edges(edges : Array[Delaunay3D.Edge]):
 	for edge in edges:
@@ -249,6 +254,8 @@ class Hallway extends DungeonNavigationObject:
 			grid.grab(position).add_nav_object(self)
 
 class Stairway extends DungeonNavigationObject:
+	var directionXZ : Vector3i
+	
 	func _init():
 		pass
 
