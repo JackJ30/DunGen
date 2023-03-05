@@ -93,7 +93,11 @@ func pathfind_hallways_CSharp():
 	var pathfinder = pathfinder_script.new()
 	pathfinder.Initialize(size)
 	
+	print("start pathfinding")
+	var iterations = 1
 	for edge in selected_edges:
+		print("hallway: " + str(iterations) + "/" + str(selected_edges.size()))
+		iterations = iterations + 1
 		var grid_csharp = []
 		for x in range(size.x):
 			grid_csharp.append([])
@@ -173,16 +177,23 @@ func pathfind_hallways_CSharp():
 			add_nav.assign_cells(grid)
 
 func display_cells():
+	print("start displaying cells")
+	var iterator = 1
 	for x in grid.data:
 		for y in x:
 			for cell in y:
+				print("Cell: " + str(iterator) + "/" + str(size.x * size.y * size.z))
+				iterator = iterator + 1
 				if(cell.nav_objects[0] is Room): visual_gen.display_cell(cell, "room_neighbor_evaluator")
 				if(cell.nav_objects[0] is Hallway): visual_gen.display_cell(cell, "hallway_neighbor_evaluator")
 				if(cell.nav_objects[0] is Stairway): visual_gen.display_cell(cell, "stairway_neighbor_evaluator")
+	print("end displaying cells")
 
 func display_stairways():
+	print("start displaying stairs")
 	for stairway in stairways:
 		visual_gen.display_stairway(stairway)
+	print("end displaying stairs")
 
 func display_edges(edges : Array[Delaunay3D.Edge]):
 	for edge in edges:

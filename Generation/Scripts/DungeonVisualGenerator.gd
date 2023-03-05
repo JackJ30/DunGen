@@ -47,6 +47,8 @@ func stairway_neighbor_evaluator(cell_from, cell_to, delta):
 	return true;
 
 func display_cell(cell, evaluator : String):
+	
+	print("start neighbor check")
 	var new_assets = []
 	if !has_neighbor(cell, Vector3i.DOWN, Callable(self,evaluator)):
 		new_assets.append(room_floor.instantiate())
@@ -62,6 +64,9 @@ func display_cell(cell, evaluator : String):
 	neighbors.append(int(has_neighbor(cell, Vector3i(-1,0,0),Callable(self,evaluator))))
 	var direction = Vector3(neighbors[2] - neighbors[3], 0, neighbors[0] - neighbors[1])
 	var num_neighbors = neighbors[0] + neighbors[1] + neighbors[2] + neighbors[3]
+	
+	
+	print("end neighbor check")
 	
 	if(num_neighbors != 4):
 		var new_wall

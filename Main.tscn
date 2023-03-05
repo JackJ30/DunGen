@@ -28,8 +28,8 @@ sky = SubResource("Sky_cpprc")
 script = ExtResource("1_fnvqc")
 size = Vector3i(40, 6, 40)
 room_count = 12
-room_max_size = Vector3i(6, 2, 6)
-room_min_size = Vector3i(3, 1, 3)
+room_max_size = Vector3i(6, 3, 6)
+room_min_size = Vector3i(2, 1, 2)
 extra_hallway_chance = 0.05
 
 [node name="Visual Generator" type="Node3D" parent="Generator"]
