@@ -1,0 +1,125 @@
+[gd_scene load_steps=12 format=3 uid="uid://dhunyb86e5atj"]
+
+[ext_resource type="Script" path="res://Scenes/World.gd" id="1_csfu3"]
+[ext_resource type="PackedScene" uid="uid://dldro3skg7dpg" path="res://Generation/Generator.tscn" id="2_3kjkl"]
+[ext_resource type="Texture2D" uid="uid://bxoqrc0v2hldm" path="res://addons/kenney_prototype_textures/dark/texture_01.png" id="3_evaeo"]
+[ext_resource type="Texture2D" uid="uid://ihacppnjos7v" path="res://addons/kenney_prototype_textures/green/texture_08.png" id="4_23kkp"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_uiymn"]
+
+[sub_resource type="Sky" id="Sky_cpprc"]
+sky_material = SubResource("ProceduralSkyMaterial_uiymn")
+
+[sub_resource type="Environment" id="Environment_8ue51"]
+background_mode = 2
+sky = SubResource("Sky_cpprc")
+ambient_light_source = 3
+ssao_enabled = true
+ssil_enabled = true
+sdfgi_enabled = true
+glow_strength = 2.0
+glow_bloom = 0.68
+volumetric_fog_enabled = true
+volumetric_fog_density = 0.01
+volumetric_fog_albedo = Color(0, 0.698039, 0.882353, 1)
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_op6ki"]
+size = Vector2(10, 10)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_fu7v6"]
+albedo_texture = ExtResource("3_evaeo")
+metallic_specular = 0.1
+roughness = 0.1
+uv1_triplanar = true
+grow_amount = -0.918
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_una8o"]
+size = Vector3(10, 0.05, 10)
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_seayr"]
+albedo_texture = ExtResource("4_23kkp")
+uv1_scale = Vector3(0.5, 0.5, 0.5)
+uv1_triplanar = true
+
+[node name="World" type="Node3D"]
+script = ExtResource("1_csfu3")
+
+[node name="Generator" parent="." instance=ExtResource("2_3kjkl")]
+generate = false
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_8ue51")
+
+[node name="Environment" type="Node3D" parent="."]
+
+[node name="Ground" type="StaticBody3D" parent="Environment"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Ground"]
+mesh = SubResource("PlaneMesh_op6ki")
+surface_material_override/0 = SubResource("StandardMaterial3D_fu7v6")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Ground"]
+shape = SubResource("BoxShape3D_una8o")
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Environment"]
+transform = Transform3D(0.824764, 0.340299, -0.451621, 0.000266545, 0.798421, 0.6021, 0.565477, -0.496711, 0.658418, 0, 1.79332, 0)
+
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="Environment"]
+use_collision = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="Environment/CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00522935, 0.507991, -2.42767)
+size = Vector3(1, 2.51027, 1)
+material = SubResource("StandardMaterial3D_seayr")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="MainMenu" type="PanelContainer" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 391.0
+offset_top = 210.0
+offset_right = -391.0
+offset_bottom = -210.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer/MainMenu"]
+layout_mode = 2
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MainMenu/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 15
+
+[node name="Label" type="Label" parent="CanvasLayer/MainMenu/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Main Menu"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="HostButton" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Host"
+
+[node name="JoinButton" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "Join
+"
+
+[node name="AddressEntry" type="LineEdit" parent="CanvasLayer/MainMenu/MarginContainer/VBoxContainer"]
+layout_mode = 2
+text = "localhost"
+placeholder_text = "Enter address to join"
+alignment = 1
+
+[node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
+_spawnable_scenes = PackedStringArray("res://Entities/Player/player.tscn")
+spawn_path = NodePath("..")
+
+[connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/VBoxContainer/HostButton" to="." method="_on_host_button_pressed"]
+[connection signal="pressed" from="CanvasLayer/MainMenu/MarginContainer/VBoxContainer/JoinButton" to="." method="_on_join_button_pressed"]

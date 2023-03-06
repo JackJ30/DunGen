@@ -1,0 +1,26 @@
+[gd_scene load_steps=11 format=3 uid="uid://dldro3skg7dpg"]
+
+[ext_resource type="Script" path="res://Generation/Scripts/DungeonGenerator.gd" id="1_arf74"]
+[ext_resource type="Script" path="res://Generation/Scripts/DungeonVisualGenerator.gd" id="2_h2or4"]
+[ext_resource type="PackedScene" uid="uid://431cysbvo4hj" path="res://Generation/Assets/room_floor_tile.glb" id="3_f34l2"]
+[ext_resource type="PackedScene" uid="uid://bob2dkn732byi" path="res://Generation/Assets/room_ceiling_tile.glb" id="4_du5w4"]
+[ext_resource type="PackedScene" uid="uid://btr02s1uusk0x" path="res://Generation/Assets/room_wall_tile0.glb" id="5_masgh"]
+[ext_resource type="PackedScene" uid="uid://by1u0sbv2ymei" path="res://Generation/Assets/room_wall_tile1.glb" id="6_6s7q2"]
+[ext_resource type="PackedScene" uid="uid://b6qhfw1hfub8k" path="res://Generation/Assets/room_wall_tile2.glb" id="7_484k6"]
+[ext_resource type="PackedScene" uid="uid://dw42vyo7vqvx1" path="res://Generation/Assets/room_wall_tile2_2.glb" id="8_7qdy7"]
+[ext_resource type="PackedScene" uid="uid://ci062wh708645" path="res://Generation/Assets/room_wall_tile3.glb" id="9_ygdy0"]
+[ext_resource type="PackedScene" uid="uid://thtxert26ede" path="res://Generation/Assets/stairway_model.glb" id="10_30sma"]
+
+[node name="Generator" type="Node"]
+script = ExtResource("1_arf74")
+
+[node name="Visual Generator" type="Node3D" parent="."]
+script = ExtResource("2_h2or4")
+room_floor = ExtResource("3_f34l2")
+room_ceiling = ExtResource("4_du5w4")
+room_wall0 = ExtResource("5_masgh")
+room_wall1 = ExtResource("6_6s7q2")
+room_wall2 = ExtResource("7_484k6")
+room_wall2_2 = ExtResource("8_7qdy7")
+room_wall3 = ExtResource("9_ygdy0")
+hallway_stair = ExtResource("10_30sma")

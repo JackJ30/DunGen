@@ -2,14 +2,15 @@ extends Node
 class_name DungeonGenerator
 
 @export_category("Dungeon Generator")
+@export var generate : bool = true
 @export_group("Grid Settings")
-@export var size : Vector3i
+@export var size : Vector3i = Vector3i(40,6,40)
 @export_group("Room Settings")
-@export var room_count : int
-@export var room_max_size : Vector3i
-@export var room_min_size : Vector3i
+@export var room_count : int = 12
+@export var room_max_size : Vector3i = Vector3i(6,3,6)
+@export var room_min_size : Vector3i = Vector3i(2,1,2)
 @export_group("Hallway Settings")
-@export_range(0.0,1.0) var extra_hallway_chance = 0.125
+@export_range(0.0,1.0) var extra_hallway_chance = 0.05
 
 @onready var visual_gen : DunngeonVisualGenerator = get_node("Visual Generator")
 var grid : Grid3D
@@ -21,6 +22,8 @@ var delaunay : Delaunay3D
 var random : RandomNumberGenerator
 
 func _ready():
+	if !generate: return
+	
 	grid = Grid3D.new(size, Vector3i.ZERO, func(position : Vector3i): return Cell.new(position, null))
 	visual_gen.grid = grid
 	delaunay = Delaunay3D.new()
