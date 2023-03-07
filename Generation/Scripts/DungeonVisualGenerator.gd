@@ -22,7 +22,7 @@ func room_neighbor_evaluator(cell_from, cell_to, delta):
 	if(cell_from.nav_objects[0].check_connections(cell_from,cell_to)):
 		return true;
 	
-	if cell_from.nav_objects[0] != cell_to.nav_objects[0]: return false
+	if cell_from.nav_objects[0] != cell_to.nav_objects[0]: return false # IF HAS SEGMENT !!!!!!!!!!!!!!!!!
 		
 	if !(cell_to.nav_objects[0] is DungeonGenerator.Room): return false
 	return true

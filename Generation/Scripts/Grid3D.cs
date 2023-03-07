@@ -7,15 +7,47 @@ public partial class Grid3D<T> {
 	T[] data;
 
 	public Vector3I Size { get; private set; }
+	public Aabb Bounds { get; private set; }
 	public Vector3I Offset { get; set; }
 
 	public Grid3D(Vector3I size, Vector3I offset) {
 		Size = size;
 		Offset = offset;
+		Bounds = new Aabb(offset, size);
 
 		data = new T[size.X * size.Y * size.Z];
 	}
 
+	public void AssignAll(Func<Vector3I, T> valueFunction)
+	{
+		for(int x = 0; x < data.GetLength(0); x++)
+		{
+			for(int y = 0; y < data.GetLength(0); y++)
+			{
+				for(int z = 0; z < data.GetLength(0); z++)
+				{
+					this[x,y,z] = valueFunction(new Vector3I(x,y,z));
+				}
+			}
+		}
+	}
+	
+	public void AssignBounds(Aabb bounds, Func<Vector3I, T> valueFunction)
+	{
+		if (!Bounds.Encloses(bounds)) return;
+		
+		for(int x = (int)bounds.Position.X; x < (int)bounds.Position.X + (int)bounds.Size.X; x++)
+		{
+			for(int y = (int)bounds.Position.Y; y < (int)bounds.Position.Y + (int)bounds.Size.Y; y++)
+			{
+				for(int z = (int)bounds.Position.Z; z < (int)bounds.Position.Z + (int)bounds.Size.Z; z++)
+				{
+					this[x,y,z] = valueFunction(new Vector3I(x,y,z));
+				}
+			}
+		}
+	}
+	
 	public int GetIndex(Vector3I pos) {
 		return pos.X + (Size.X * pos.Y) + (Size.X * Size.Y * pos.Z);
 	}
