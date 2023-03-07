@@ -1,6 +1,7 @@
 using Godot;
 using System;
 using System.Collections.Generic;
+using Graphs;
 
 public partial class DungeonGenerator : Node
 {
@@ -22,6 +23,8 @@ public partial class DungeonGenerator : Node
 	
 	private Grid3D<Cell> _grid;
 	private RandomNumberGenerator _random;
+	private Delaunay3D _delaunay;
+	private HashSet<Prim.Edge> _hallwayEdges;
 	
 	private List<Room> _rooms;
 	
@@ -75,6 +78,38 @@ public partial class DungeonGenerator : Node
 			numTries = 0;
 		}
 	}
+	
+	private void Triangulate()
+	{
+		List<Vertex> vertices = new List<Vertex>();
+
+		foreach (var room in _rooms) {
+			vertices.Add(new Vertex<Room>((Vector3)room.Bounds.Position + ((Vector3)room.Bounds.Size) / 2, room));
+		}
+
+		_delaunay = Delaunay3D.Triangulate(vertices);
+	}
+	
+	void CreateHallwayConnections()
+	{
+		List<Prim.Edge> edges = new List<Prim.Edge>();
+
+		foreach (var edge in _delaunay.Edges) {
+			edges.Add(new Prim.Edge(edge.U, edge.V));
+		}
+
+		List<Prim.Edge> minimumSpanningTree = Prim.MinimumSpanningTree(edges, edges[0].U);
+
+		_hallwayEdges = new HashSet<Prim.Edge>(minimumSpanningTree);
+		var remainingEdges = new HashSet<Prim.Edge>(edges);
+		remainingEdges.ExceptWith(_hallwayEdges);
+
+		foreach (var edge in remainingEdges) {
+			if (_random.Randf() < ExtraHallwayChance) {
+				_hallwayEdges.Add(edge);
+			}
+		}
+	}
 }
 
 public abstract class DungeonLevelSegment
@@ -120,6 +155,11 @@ public class Room : DungeonLevelSegment
 }
 
 public class Hallway : DungeonLevelSegment
+{
+	
+}
+
+public class Stairway : DungeonLevelSegment
 {
 	
 }
