@@ -20,11 +20,11 @@ public partial class Grid3D<T> {
 
 	public void AssignAll(Func<Vector3I, T> valueFunction)
 	{
-		for(int x = 0; x < data.GetLength(0); x++)
+		for(int x = 0; x < Size.X; x++)
 		{
-			for(int y = 0; y < data.GetLength(0); y++)
+			for(int y = 0; y < Size.Y; y++)
 			{
-				for(int z = 0; z < data.GetLength(0); z++)
+				for(int z = 0; z < Size.Z; z++)
 				{
 					this[x,y,z] = valueFunction(new Vector3I(x,y,z));
 				}

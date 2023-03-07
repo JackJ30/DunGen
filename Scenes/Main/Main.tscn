@@ -1,7 +1,6 @@
-[gd_scene load_steps=13 format=3 uid="uid://dhunyb86e5atj"]
+[gd_scene load_steps=12 format=3 uid="uid://dhunyb86e5atj"]
 
 [ext_resource type="Script" path="res://Scenes/World.gd" id="1_csfu3"]
-[ext_resource type="PackedScene" uid="uid://dldro3skg7dpg" path="res://Generation/Generator.tscn" id="2_3kjkl"]
 [ext_resource type="Texture2D" uid="uid://bxoqrc0v2hldm" path="res://addons/kenney_prototype_textures/dark/texture_01.png" id="3_evaeo"]
 [ext_resource type="Texture2D" uid="uid://ihacppnjos7v" path="res://addons/kenney_prototype_textures/green/texture_08.png" id="4_23kkp"]
 [ext_resource type="Script" path="res://Generation/Scripts/DungeonGenerator.cs" id="5_wjeyx"]
@@ -44,9 +43,6 @@ uv1_triplanar = true
 
 [node name="World" type="Node3D"]
 script = ExtResource("1_csfu3")
-
-[node name="Generator" parent="." instance=ExtResource("2_3kjkl")]
-generate = false
 
 [node name="WorldEnvironment" type="WorldEnvironment" parent="."]
 environment = SubResource("Environment_8ue51")
