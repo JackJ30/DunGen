@@ -27,6 +27,7 @@ public partial class DungeonRenderer : Node
 	
 	public void DisplayCell(Cell cell)
 	{
+		
 		List<Node3D> newObjects = new List<Node3D>();
 		if (!HasNeighbor(cell, Vector3I.Down)) newObjects.Add(RoomFloor.Instantiate<Node3D>());
 		if (!HasNeighbor(cell, Vector3I.Up)) newObjects.Add(RoomCeiling.Instantiate<Node3D>());

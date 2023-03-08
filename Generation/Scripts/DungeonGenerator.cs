@@ -136,9 +136,9 @@ public partial class DungeonGenerator : Node
 			
 			List<PathfindingLevelSegment> path = pathfinder.FindPath(_grid, startPos, endPos);
 			
+			GD.Print("test");
 			if (path == null) continue;
-			
-			GD.Print(path.Count());
+			GD.Print("test2");
 			
 			for (int i = 0; i < path.Count(); i++)
 			{
@@ -179,7 +179,7 @@ public abstract class DungeonLevelSegment
 		return new Vector3I[] {};
 	}
 	
-	public virtual bool NeighborEvaluator(Cell cellTo, Cell cellFrom, Vector3I delta)
+	public virtual bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
 	{
 		return true;
 	}
@@ -234,8 +234,11 @@ public class Room : DungeonLevelSegment
 	
 	public override void AssignCells(Grid3D<Cell> grid)
 	{
+		
 		grid.AssignBounds(Bounds, (Vector3I pos) => {
-			return new Cell(pos);
+			Cell cell = new Cell(pos);
+			cell.Segments.Add(this);
+			return cell;
 		});
 	}
 	
@@ -244,11 +247,10 @@ public class Room : DungeonLevelSegment
 		return Bounds.Intersects(other.Bounds);
 	}
 	
-	public override bool NeighborEvaluator(Cell cellTo, Cell cellFrom, Vector3I delta)
+	public override bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
 	{
 		if (cellFrom.HasConnection(cellTo)) return true;
 		if (cellTo.IsEmpty()) return false;
-		
 		if (!cellFrom.Segments.Intersect(cellTo.Segments).Any()) return false;
 		if (!cellTo.Segments.Any(i => i.GetType() == typeof(Room))) return false;
 		
@@ -292,9 +294,21 @@ public class Hallway : PathfindingLevelSegment
 				}
 			}
 		}
+		
+		if(index < results.Count() - 1)
+		{
+			foreach (Vector3I position in results[index + 1].GetOccupiedPositions())
+			{
+				if(grid[position].Segments.Any(i => i.GetType() == typeof(Room)))
+				{
+					grid[End].Connections.Add(position);
+					grid[position].Connections.Add(End);
+				}
+			}
+		}
 	}
 	
-	public override bool NeighborEvaluator(Cell cellTo, Cell cellFrom, Vector3I delta)
+	public override bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
 	{
 		if (cellFrom.HasConnection(cellTo)) return true;
 		if (cellTo.IsEmpty()) return false;
@@ -359,7 +373,7 @@ public class Stairway : PathfindingLevelSegment
 		grid[Start + (-Direction * new Vector3I(1, 0, 1))].Connections.Add(Start);
 	}
 	
-	public override bool NeighborEvaluator(Cell cellTo, Cell cellFrom, Vector3I delta)
+	public override bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
 	{
 		if (cellFrom.HasConnection(cellTo)) return true;
 		if (cellTo.IsEmpty()) return false;
@@ -371,7 +385,7 @@ public class Stairway : PathfindingLevelSegment
 	
 	public override bool SatisfiesNextCondition(PathfindingLevelSegment segment)
 	{
-		return (segment is Hallway) && segment.Direction == Direction;
+		return (segment is Hallway) && segment.Direction == Direction * new Vector3I(1, 0, 1);
 	}
 	
 	public override Vector3I[] GetOccupiedPositions()
