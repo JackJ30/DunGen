@@ -81,10 +81,10 @@ public partial class DungeonGenerationPathfinding
 		if (!grid.InBounds(segment.End)) return;
 		var neighbor = grid[segment.End];
 		if (closed.Contains(neighbor)) return;
-
 		if (node.PreviousSet.Contains(neighbor.Position)) {
 			return;
 		}
+		if (!node.Segment.SatisfiesNextCondition(segment)) return;
 		foreach (Vector3I position in segment.GetOccupiedPositions().Concat(segment.GetAdditionalRequiredEmptyPositions()))
 		{
 			if (node.PreviousSet.Contains(position)) return;

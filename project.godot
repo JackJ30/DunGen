@@ -19,6 +19,10 @@ config/icon="res://icon.svg"
 
 Draw3D="*res://Global/Draw3D.gd"
 
+[display]
+
+window/stretch/mode="canvas_items"
+
 [dotnet]
 
 project/assembly_name="Dungen"

@@ -26,6 +26,7 @@ public partial class DungeonGenerator : Node
 	private RandomNumberGenerator _random;
 	private Delaunay3D _delaunay;
 	private HashSet<Prim.Edge> _hallwayEdges;
+	private DungeonRenderer renderer;
 	
 	private List<Room> _rooms;
 	
@@ -40,12 +41,16 @@ public partial class DungeonGenerator : Node
 		_random = new RandomNumberGenerator();
 		_random.Randomize();
 		
+		renderer = this.GetNode("DungeonRenderer") as DungeonRenderer;
+		renderer.Initialize(_grid);
+		
 		_rooms = new List<Room>();
 		
 		PlaceRooms();
 		Triangulate();
 		CreateHallwayConnections();
 		PathfindHallways();
+		DisplayCells();
 	}
 
 	private void PlaceRooms()
@@ -130,7 +135,26 @@ public partial class DungeonGenerator : Node
 			var endPos = new Vector3I((int)endPosf.X, (int)endPosf.Y, (int)endPosf.Z);
 			
 			List<PathfindingLevelSegment> path = pathfinder.FindPath(_grid, startPos, endPos);
-			GD.Print(path);
+			
+			if (path == null) continue;
+			
+			GD.Print(path.Count());
+			
+			for (int i = 0; i < path.Count(); i++)
+			{
+				path[i].InterpretPathfindingResult(_grid, path, i);
+			}
+		}
+	}
+	
+	void DisplayCells()
+	{
+		for (int x = 0; x < Size.X; x++) {
+			for (int y = 0; y < Size.Y; y++) {
+				for (int z = 0; z < Size.Z; z++) {
+					if (!_grid[x,y,z].IsEmpty()) renderer.DisplayCell(_grid[x,y,z]);
+				}
+			}
 		}
 	}
 }
@@ -153,6 +177,11 @@ public abstract class DungeonLevelSegment
 	public virtual Vector3I[] GetOccupiedPositions()
 	{
 		return new Vector3I[] {};
+	}
+	
+	public virtual bool NeighborEvaluator(Cell cellTo, Cell cellFrom, Vector3I delta)
+	{
+		return true;
 	}
 }
 
@@ -179,6 +208,19 @@ public abstract class PathfindingLevelSegment : DungeonLevelSegment
 	{
 		return new Vector3I[] {};
 	}
+	
+	public virtual void InterpretPathfindingResult(Grid3D<Cell> grid, List<PathfindingLevelSegment> results, int index)
+	{
+		foreach (Vector3I position in GetOccupiedPositions())
+		{
+			grid[position].Segments.Add(this);
+		}
+	}
+	
+	public virtual bool SatisfiesNextCondition(PathfindingLevelSegment segment)
+	{
+		return true;
+	}
 }
 
 public class Room : DungeonLevelSegment
@@ -201,6 +243,17 @@ public class Room : DungeonLevelSegment
 	{
 		return Bounds.Intersects(other.Bounds);
 	}
+	
+	public override bool NeighborEvaluator(Cell cellTo, Cell cellFrom, Vector3I delta)
+	{
+		if (cellFrom.HasConnection(cellTo)) return true;
+		if (cellTo.IsEmpty()) return false;
+		
+		if (!cellFrom.Segments.Intersect(cellTo.Segments).Any()) return false;
+		if (!cellTo.Segments.Any(i => i.GetType() == typeof(Room))) return false;
+		
+		return true;
+	}
 }
 
 public class Hallway : PathfindingLevelSegment
@@ -220,6 +273,34 @@ public class Hallway : PathfindingLevelSegment
 			cost += 1f;
 		}
 		return cost;
+	}
+	
+	public override void InterpretPathfindingResult(Grid3D<Cell> grid, List<PathfindingLevelSegment> results, int index)
+	{
+		if (grid[End].Segments.Any(i => i.GetType() == typeof(Room))) return;
+		
+		base.InterpretPathfindingResult(grid, results, index);
+		
+		if(index != 0)
+		{
+			foreach (Vector3I position in results[index - 1].GetOccupiedPositions())
+			{
+				if(grid[position].Segments.Any(i => i.GetType() == typeof(Room)))
+				{
+					grid[End].Connections.Add(position);
+					grid[position].Connections.Add(End);
+				}
+			}
+		}
+	}
+	
+	public override bool NeighborEvaluator(Cell cellTo, Cell cellFrom, Vector3I delta)
+	{
+		if (cellFrom.HasConnection(cellTo)) return true;
+		if (cellTo.IsEmpty()) return false;
+		if (delta.Y != 0) return false;
+		
+		return cellTo.Segments.Any(i => i.GetType() == typeof(Hallway));
 	}
 	
 	public override Vector3I[] GetOccupiedPositions()
@@ -266,6 +347,31 @@ public class Stairway : PathfindingLevelSegment
 
 		float cost = 100f + ((Vector3)End).DistanceTo((Vector3)targetPos);    //base cost + heuristic
 		return cost;
+	}
+	
+	public override void InterpretPathfindingResult(Grid3D<Cell> grid, List<PathfindingLevelSegment> results, int index)
+	{
+		base.InterpretPathfindingResult(grid, results, index);
+		
+		grid[End].Connections.Add(End + (Direction * new Vector3I(1, 0, 1)));
+		grid[End + (Direction * new Vector3I(1, 0, 1))].Connections.Add(End);
+		grid[Start].Connections.Add(Start + (-Direction * new Vector3I(1, 0, 1)));
+		grid[Start + (-Direction * new Vector3I(1, 0, 1))].Connections.Add(Start);
+	}
+	
+	public override bool NeighborEvaluator(Cell cellTo, Cell cellFrom, Vector3I delta)
+	{
+		if (cellFrom.HasConnection(cellTo)) return true;
+		if (cellTo.IsEmpty()) return false;
+		
+		if (!cellFrom.Segments.Intersect(cellTo.Segments).Any()) return false;
+		
+		return true;
+	}
+	
+	public override bool SatisfiesNextCondition(PathfindingLevelSegment segment)
+	{
+		return (segment is Hallway) && segment.Direction == Direction;
 	}
 	
 	public override Vector3I[] GetOccupiedPositions()
@@ -328,5 +434,10 @@ public class Cell
 	public bool IsEmpty()
 	{
 		return Segments.Count == 0;
+	}
+	
+	public bool HasConnection(Cell other)
+	{
+		return Connections.Contains(other.Position);
 	}
 }

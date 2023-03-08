@@ -1,5 +1,7 @@
 extends Node3D
 
+@export var free_cam : PackedScene
+
 @onready var main_menu = get_node("CanvasLayer/MainMenu")
 @onready var address_entry : LineEdit = get_node("CanvasLayer/MainMenu/MarginContainer/VBoxContainer/AddressEntry")
 
@@ -54,3 +56,10 @@ func upnp_setup():
 		"UPNP Port Mapping Failed! Error %s" % map_result)
 	
 	print("Success! Join Address: %s" % upnp.query_external_address())
+
+
+func _on_debug_pressed():
+	var cam = free_cam.instantiate()
+	add_child(cam)
+	
+	main_menu.hide()
