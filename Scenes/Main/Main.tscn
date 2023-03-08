@@ -22,14 +22,15 @@ sky_material = SubResource("ProceduralSkyMaterial_uiymn")
 
 [sub_resource type="Environment" id="Environment_8ue51"]
 background_mode = 2
+background_energy_multiplier = 0.0
 sky = SubResource("Sky_cpprc")
 ambient_light_source = 3
 ssao_enabled = true
 ssil_enabled = true
 sdfgi_enabled = true
+sdfgi_cascades = 6
 glow_strength = 2.0
 glow_bloom = 0.68
-volumetric_fog_enabled = true
 volumetric_fog_density = 0.01
 volumetric_fog_albedo = Color(0, 0.698039, 0.882353, 1)
 
@@ -69,9 +70,6 @@ surface_material_override/0 = SubResource("StandardMaterial3D_fu7v6")
 [node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Ground"]
 shape = SubResource("BoxShape3D_una8o")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="Environment"]
-transform = Transform3D(0.824764, 0.340299, -0.451621, 0.000266545, 0.798421, 0.6021, 0.565477, -0.496711, 0.658418, 0, 1.79332, 0)
-
 [node name="CSGCombiner3D" type="CSGCombiner3D" parent="Environment"]
 use_collision = true
 
@@ -79,6 +77,11 @@ use_collision = true
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00522935, 0.507991, -2.42767)
 size = Vector3(1, 2.51027, 1)
 material = SubResource("StandardMaterial3D_seayr")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55967, 0)
+light_energy = 3.061
+light_indirect_energy = 13.42
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
@@ -135,6 +138,9 @@ spawn_path = NodePath("..")
 
 [node name="DungeonGenerator" type="Node" parent="."]
 script = ExtResource("5_wjeyx")
+Size = Vector3i(60, 6, 60)
+RoomCount = 25
+ExtraHallwayChance = 0.1
 
 [node name="DungeonRenderer" type="Node" parent="DungeonGenerator"]
 script = ExtResource("5_d0dlm")

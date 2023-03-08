@@ -97,6 +97,36 @@ public partial class DungeonRenderer : Node
 		}
 	}
 	
+	public void DisplayStair(Stairway stairway)
+	{
+		Node3D newStairway = Stair.Instantiate<Node3D>();
+		AddChild(newStairway);
+		float meanPositionX = 0f;
+		float meanPositionY = 0f;
+		float meanPositionZ = 0f;
+		
+		foreach (Vector3I position in stairway.GetOccupiedPositions())
+		{
+			meanPositionX += (float)position.X;
+			meanPositionY += (float)position.Y;
+			meanPositionZ += (float)position.Z;
+		}
+		
+		meanPositionX /= stairway.GetOccupiedPositions().Length;
+		meanPositionY /= stairway.GetOccupiedPositions().Length;
+		meanPositionZ /= stairway.GetOccupiedPositions().Length;
+		
+		newStairway.GlobalPosition = GridToWorldPos(new Vector3(meanPositionX, meanPositionY, meanPositionZ), CellScale, true);
+		Vector3 trueDirection = (Vector3)(stairway.Direction * new Vector3I(1,0,1));
+		if (stairway.Start.Y > stairway.End.Y) trueDirection = trueDirection * -1.0f;
+		float angle = (float)Math.Atan2(1f,0f) - (float)Math.Atan2(trueDirection.Z, trueDirection.X);
+		if (angle < 0.0f) angle += 2f*(float)Math.PI;
+		
+		Vector3 newRotation = newStairway.GlobalRotation;
+		newRotation.Y = angle;
+		newStairway.GlobalRotation = newRotation;
+	}
+	
 	bool HasNeighbor(Cell cell, Vector3I offset)
 	{
 		if (!_grid.InBounds(cell.Position + offset)) return false;

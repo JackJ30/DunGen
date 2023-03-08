@@ -29,6 +29,7 @@ public partial class DungeonGenerator : Node
 	private DungeonRenderer renderer;
 	
 	private List<Room> _rooms;
+	private List<Stairway> _stairways;
 	
 	public override void _Ready()
 	{
@@ -45,6 +46,7 @@ public partial class DungeonGenerator : Node
 		renderer.Initialize(_grid);
 		
 		_rooms = new List<Room>();
+		_stairways = new List<Stairway>();
 		
 		PlaceRooms();
 		Triangulate();
@@ -136,13 +138,12 @@ public partial class DungeonGenerator : Node
 			
 			List<PathfindingLevelSegment> path = pathfinder.FindPath(_grid, startPos, endPos);
 			
-			GD.Print("test");
 			if (path == null) continue;
-			GD.Print("test2");
 			
 			for (int i = 0; i < path.Count(); i++)
 			{
 				path[i].InterpretPathfindingResult(_grid, path, i);
+				if (path[i] is Stairway) _stairways.Add((Stairway)path[i]);
 			}
 		}
 	}
@@ -155,6 +156,11 @@ public partial class DungeonGenerator : Node
 					if (!_grid[x,y,z].IsEmpty()) renderer.DisplayCell(_grid[x,y,z]);
 				}
 			}
+		}
+		
+		foreach (Stairway stairway in _stairways)
+		{
+			renderer.DisplayStair(stairway);
 		}
 	}
 }
@@ -377,6 +383,19 @@ public class Stairway : PathfindingLevelSegment
 	{
 		if (cellFrom.HasConnection(cellTo)) return true;
 		if (cellTo.IsEmpty()) return false;
+		
+		foreach (PathfindingLevelSegment segmentTo in cellTo.Segments.FindAll(i => i.GetType() == typeof(Stairway)))
+		{
+			foreach (PathfindingLevelSegment segmentFrom in cellFrom.Segments.FindAll(i => i.GetType() == typeof(Stairway)))
+			{
+				if ((segmentTo.Start == segmentFrom.Start + delta && segmentTo.End == segmentFrom.End + delta) || 
+					(segmentTo.Start == segmentFrom.End + delta && segmentTo.End == segmentFrom.Start + delta))
+				{
+					if (segmentTo.Direction == segmentFrom.Direction) return true;
+					if (segmentTo.Direction == -segmentFrom.Direction) return true;
+				}
+			}
+		}
 		
 		if (!cellFrom.Segments.Intersect(cellTo.Segments).Any()) return false;
 		
