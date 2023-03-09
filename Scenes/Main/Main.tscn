@@ -56,33 +56,6 @@ uv1_triplanar = true
 script = ExtResource("1_csfu3")
 free_cam = ExtResource("2_vo7cv")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
-environment = SubResource("Environment_8ue51")
-
-[node name="Environment" type="Node3D" parent="."]
-
-[node name="Ground" type="StaticBody3D" parent="Environment"]
-
-[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Ground"]
-mesh = SubResource("PlaneMesh_op6ki")
-surface_material_override/0 = SubResource("StandardMaterial3D_fu7v6")
-
-[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Ground"]
-shape = SubResource("BoxShape3D_una8o")
-
-[node name="CSGCombiner3D" type="CSGCombiner3D" parent="Environment"]
-use_collision = true
-
-[node name="CSGBox3D" type="CSGBox3D" parent="Environment/CSGCombiner3D"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00522935, 0.507991, -2.42767)
-size = Vector3(1, 2.51027, 1)
-material = SubResource("StandardMaterial3D_seayr")
-
-[node name="OmniLight3D" type="OmniLight3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55967, 0)
-light_energy = 3.061
-light_indirect_energy = 13.42
-
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
 [node name="MainMenu" type="PanelContainer" parent="CanvasLayer"]
@@ -131,6 +104,33 @@ alignment = 1
 [node name="Debug" type="Button" parent="CanvasLayer/MainMenu/MarginContainer/VBoxContainer"]
 layout_mode = 2
 text = "DEBUG"
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_8ue51")
+
+[node name="Environment" type="Node3D" parent="."]
+
+[node name="Ground" type="StaticBody3D" parent="Environment"]
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="Environment/Ground"]
+mesh = SubResource("PlaneMesh_op6ki")
+surface_material_override/0 = SubResource("StandardMaterial3D_fu7v6")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Environment/Ground"]
+shape = SubResource("BoxShape3D_una8o")
+
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="Environment"]
+use_collision = true
+
+[node name="CSGBox3D" type="CSGBox3D" parent="Environment/CSGCombiner3D"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.00522935, 0.507991, -2.42767)
+size = Vector3(1, 2.51027, 1)
+material = SubResource("StandardMaterial3D_seayr")
+
+[node name="OmniLight3D" type="OmniLight3D" parent="Environment"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55967, 0)
+light_energy = 3.061
+light_indirect_energy = 13.42
 
 [node name="MultiplayerSpawner" type="MultiplayerSpawner" parent="."]
 _spawnable_scenes = PackedStringArray("res://Entities/Player/player.tscn")
