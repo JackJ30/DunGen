@@ -90,7 +90,7 @@ public partial class DungeonGenerationPathfinding
 			if (node.PreviousSet.Contains(position)) return;
 		}
 
-		float cost = segment.CalculateCost(end, existingGrid);
+		float cost = segment.CalculateCost(end, node.Position, existingGrid);
 		if (Math.Abs(-1f - cost) < 0.001f) return;
 
 		float newCost = node.Cost + cost;

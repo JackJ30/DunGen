@@ -23,7 +23,6 @@ public partial class DungeonGenerator : Node
 	float ExtraHallwayChance = 0.05f;
 	
 	private Grid3D<Cell> _grid;
-	private RandomNumberGenerator _random;
 	private Delaunay3D _delaunay;
 	private HashSet<Prim.Edge> _hallwayEdges;
 	private DungeonRenderer renderer;
@@ -39,8 +38,7 @@ public partial class DungeonGenerator : Node
 		_grid.AssignAll((Vector3I pos) => {
 			return new Cell(pos);
 		});
-		_random = new RandomNumberGenerator();
-		_random.Randomize();
+		GD.Randomize();
 		
 		renderer = this.GetNode("DungeonRenderer") as DungeonRenderer;
 		renderer.Initialize(_grid);
@@ -64,16 +62,15 @@ public partial class DungeonGenerator : Node
 			if (numTries >= 1000) break;
 			numTries += 1;
 			
-			Vector3I roomPosition = new Vector3I(_random.RandiRange(0,Size.X - 1), _random.RandiRange(0,Size.Y - 1), _random.RandiRange(0,Size.Z - 1));
-			Vector3I roomSize = new Vector3I(_random.RandiRange(RoomMinSize.X,RoomMaxSize.X), _random.RandiRange(RoomMinSize.Y,RoomMaxSize.Y), _random.RandiRange(RoomMinSize.Z,RoomMaxSize.Z));
+			Vector3I roomPosition = new Vector3I(GD.RandRange(0,Size.X - 1), GD.RandRange(0,Size.Y - 1), GD.RandRange(0,Size.Z - 1));
+			Vector3I roomSize = new Vector3I(GD.RandRange(RoomMinSize.X,RoomMaxSize.X), GD.RandRange(RoomMinSize.Y,RoomMaxSize.Y), GD.RandRange(RoomMinSize.Z,RoomMaxSize.Z));
 			
 			Room newRoom = new Room(roomPosition, roomSize);
-			Room bufferRoom = new Room(roomPosition + new Vector3I(-1,-1,-1), roomSize + new Vector3I(2,1,2));
-			
+
 			bool addRoom = true;
 			foreach (Room room in _rooms)
 			{
-				if (room.Intersects(bufferRoom))
+				if (room.Intersects(newRoom))
 				{
 					addRoom = false;
 					break;
@@ -81,7 +78,7 @@ public partial class DungeonGenerator : Node
 			}
 			
 			if (!addRoom) continue;
-			if (!_grid.Bounds.Encloses(bufferRoom.Bounds)) continue;
+			if (!newRoom.InBounds(_grid)) continue;
 			
 			_rooms.Add(newRoom);
 			newRoom.AssignCells(_grid);
@@ -95,7 +92,7 @@ public partial class DungeonGenerator : Node
 		List<Vertex> vertices = new List<Vertex>();
 
 		foreach (var room in _rooms) {
-			vertices.Add(new Vertex<Room>((Vector3)room.Bounds.Position + ((Vector3)room.Bounds.Size) / 2, room));
+			vertices.Add(new Vertex<Room>(room.GetAveragePosition(), room));
 		}
 
 		_delaunay = Delaunay3D.Triangulate(vertices);
@@ -116,7 +113,7 @@ public partial class DungeonGenerator : Node
 		remainingEdges.ExceptWith(_hallwayEdges);
 
 		foreach (var edge in remainingEdges) {
-			if (_random.Randf() < ExtraHallwayChance) {
+			if (GD.Randf() < ExtraHallwayChance) {
 				_hallwayEdges.Add(edge);
 			}
 		}
@@ -131,10 +128,10 @@ public partial class DungeonGenerator : Node
 			var startRoom = (edge.U as Vertex<Room>).Item;
 			var endRoom = (edge.V as Vertex<Room>).Item;
 
-			var startPosf = startRoom.Bounds.GetCenter();
-			var endPosf = endRoom.Bounds.GetCenter();
-			var startPos = new Vector3I((int)startPosf.X, (int)startPosf.Y, (int)startPosf.Z);
-			var endPos = new Vector3I((int)endPosf.X, (int)endPosf.Y, (int)endPosf.Z);
+			var startRoomFloor = startRoom.GetFloorPositions(_grid);
+			var endRoomFloor = endRoom.GetFloorPositions(_grid);
+			var startPos = startRoomFloor[GD.RandRange(0, startRoomFloor.Length - 1)];
+			var endPos = endRoomFloor[GD.RandRange(0, endRoomFloor.Length - 1)];
 			
 			List<PathfindingLevelSegment> path = pathfinder.FindPath(_grid, startPos, endPos);
 			
@@ -205,7 +202,7 @@ public abstract class PathfindingLevelSegment : DungeonLevelSegment
 		Direction = End - Start;
 	}
 	
-	public virtual float CalculateCost(Vector3I targetPos, Grid3D<Cell> grid) // -1f = non-traversable
+	public virtual float CalculateCost(Vector3I targetPos, Vector3I previousPos, Grid3D<Cell> grid) // -1f = non-traversable
 	{
 		return 0.0f;
 	}
@@ -231,26 +228,85 @@ public abstract class PathfindingLevelSegment : DungeonLevelSegment
 
 public class Room : DungeonLevelSegment
 {
-	public Aabb Bounds { get; private set; }
+	private List<Vector3I> _occupiedPositions;
 	
 	public Room(Vector3I position, Vector3I size) : base()
 	{
-		Bounds = new Aabb(position,size);
+		_occupiedPositions = new List<Vector3I>();
+		for(int x = position.X; x < position.X + size.X; x++)
+		{
+			for(int y = position.Y; y < position.Y + size.Y; y++)
+			{
+				for(int z = position.Z; z < position.Z + size.Z; z++)
+				{
+					_occupiedPositions.Add(new Vector3I(x,y,z));
+				}
+			}
+		}
 	}
 	
 	public override void AssignCells(Grid3D<Cell> grid)
 	{
-		
-		grid.AssignBounds(Bounds, (Vector3I pos) => {
-			Cell cell = new Cell(pos);
-			cell.Segments.Add(this);
-			return cell;
-		});
+		foreach (Vector3I position in _occupiedPositions)
+		{
+			grid[position].Segments.Add(this);
+		}
 	}
 	
-	public bool Intersects(Room other)
+	public Vector3 GetAveragePosition()
 	{
-		return Bounds.Intersects(other.Bounds);
+		float meanPositionX = 0f;
+		float meanPositionY = 0f;
+		float meanPositionZ = 0f;
+		
+		foreach (Vector3I position in _occupiedPositions)
+		{
+			meanPositionX += (float)position.X;
+			meanPositionY += (float)position.Y;
+			meanPositionZ += (float)position.Z;
+		}
+		
+		meanPositionX /= _occupiedPositions.Count();
+		meanPositionY /= _occupiedPositions.Count();
+		meanPositionZ /= _occupiedPositions.Count();
+		
+		return new Vector3(meanPositionX,meanPositionY,meanPositionZ);
+	}
+	
+	public Vector3I[] GetFloorPositions(Grid3D<Cell> grid)
+	{
+		List<Vector3I> result = new List<Vector3I>();
+		
+		foreach (Vector3I position in _occupiedPositions)
+		{
+			if (!grid.InBounds(position + new Vector3I(0,-1,0))) result.Add(position);
+			else if (!grid[position + new Vector3I(0,-1,0)].Segments.Contains(this)) result.Add(position);
+		}
+		
+		return result.ToArray();
+	}
+	
+	public bool Intersects(Room other) // Maybe revamp with one cell padding
+	{
+		return _occupiedPositions.Intersect(other.GetOccupiedPositions()).Any();
+	}
+	
+	public bool InBounds(Grid3D<Cell> grid)
+	{
+		foreach (Vector3I position in _occupiedPositions)
+		{
+			if(!grid.InBounds(position))
+			{
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	public override Vector3I[] GetOccupiedPositions()
+	{
+		return _occupiedPositions.ToArray();
 	}
 	
 	public override bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
@@ -270,7 +326,7 @@ public class Hallway : PathfindingLevelSegment
 	{
 	}
 	
-	public override float CalculateCost(Vector3I targetPos, Grid3D<Cell> grid)
+	public override float CalculateCost(Vector3I targetPos, Vector3I previousPos, Grid3D<Cell> grid)
 	{
 		float cost = ((Vector3)End).DistanceTo((Vector3)targetPos);    //heuristic
 		if (grid[End].Segments.Any(i => i.GetType() == typeof(Stairway))) {
@@ -349,12 +405,13 @@ public class Stairway : PathfindingLevelSegment
 		Direction = End - Start;
 	}
 	
-	public override float CalculateCost(Vector3I targetPos, Grid3D<Cell> grid)
+	public override float CalculateCost(Vector3I targetPos, Vector3I previousPos, Grid3D<Cell> grid)
 	{
 		if ((!grid[Start].IsEmpty() && !grid[Start].Segments.Any(i => i.GetType() == typeof(Hallway)))
 				|| (!grid[End].IsEmpty() && !grid[End].Segments.Any(i => i.GetType() == typeof(Hallway)))) return -1f;
 
-		Vector3I[] positions = GetOccupiedPositions().Concat(GetAdditionalRequiredEmptyPositions()).ToArray();
+		List<Vector3I> positions = GetOccupiedPositions().Concat(GetAdditionalRequiredEmptyPositions()).ToList();
+		positions.Add(previousPos);
 		foreach (Vector3I position in positions)
 		{
 			if (!grid.InBounds(position)) return -1f;
@@ -362,7 +419,10 @@ public class Stairway : PathfindingLevelSegment
 		
 		foreach (Vector3I position in positions)
 		{
-			if (grid[position].Segments.Any(i => i.GetType() == typeof(Hallway))) return -1f;
+			if (!grid[position].IsEmpty()) 
+			{
+				return -1f;
+			}
 		}
 
 		float cost = 100f + ((Vector3)End).DistanceTo((Vector3)targetPos);    //base cost + heuristic
@@ -420,8 +480,9 @@ public class Stairway : PathfindingLevelSegment
 	
 	public override Vector3I[] GetAdditionalRequiredEmptyPositions()
 	{
-		Vector3I[] positions = new Vector3I[1];
+		Vector3I[] positions = new Vector3I[2];
 		positions[0] = End + (Direction * new Vector3I(1, 0, 1));
+		//positions[1] = Start - (Direction * new Vector3I(1, 0, 1));
 		
 		return positions;
 	}
