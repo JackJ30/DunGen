@@ -3,6 +3,9 @@ using System;
 using System.Collections.Generic;
 using Graphs;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.IO;
+using System.Xml;
 
 public partial class DungeonGenerator : Node
 {
@@ -147,6 +150,11 @@ public partial class DungeonGenerator : Node
 	
 	void DisplayCells()
 	{
+		SerializedDungeon serializedDungeon = new SerializedDungeon(_grid);
+		String dungeon = serializedDungeon.Serialize();
+		
+		_grid = serializedDungeon.DeSerialize(dungeon);
+		
 		for (int x = 0; x < Size.X; x++) {
 			for (int y = 0; y < Size.Y; y++) {
 				for (int z = 0; z < Size.Z; z++) {
@@ -162,11 +170,99 @@ public partial class DungeonGenerator : Node
 	}
 }
 
+[DataContract]
+public class SerializedDungeon
+{
+	[DataMember]
+	public Grid3D<Cell> Grid;
+	[DataMember]
+	public List<DungeonLevelSegment> Segments;
+	
+	public SerializedDungeon(Grid3D<Cell> grid)
+	{
+		Grid = grid;
+		Segments = new List<DungeonLevelSegment>();
+		
+		for (int x = 0; x < Grid.Size.X; x++)
+		{
+			for (int y = 0; y < Grid.Size.Y; y++)
+			{
+				for (int z = 0; z < Grid.Size.Z; z++)
+				{
+					if (!Grid[x,y,z].IsEmpty()) 
+					{
+						foreach(DungeonLevelSegment segment in Grid[x,y,z].Segments)
+						{
+							if(!Segments.Contains(segment)) Segments.Add(segment);
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	private DataContractSerializer GetSerializer()
+	{
+		var settings = new DataContractSerializerSettings();
+		settings.MaxItemsInObjectGraph = 0x7FFF0;
+		settings.IgnoreExtensionDataObject = false;
+		settings.PreserveObjectReferences = true;
+		
+		List<Type> knownTypeList = new List<Type>();
+		knownTypeList.Add(typeof(DungeonLevelSegment));
+		knownTypeList.Add(typeof(PathfindingLevelSegment));
+		knownTypeList.Add(typeof(Room));
+		knownTypeList.Add(typeof(Hallway));
+		knownTypeList.Add(typeof(Stairway));
+		
+		settings.KnownTypes = knownTypeList;
+		
+		var serializer = new DataContractSerializer(GetType(), settings);
+		
+		return serializer;
+	}
+	
+	public String Serialize()
+	{
+		var settings = new DataContractSerializerSettings();
+		var serializer = GetSerializer();
+		FileStream writer = new FileStream(@System.IO.Path.GetTempPath() + "dungeon.txt", FileMode.Create, System.IO.FileAccess.Write, System.IO.FileShare.Write, 128 * 1024);
+		serializer.WriteObject(writer, this);
+		writer.Close();
+		
+		return File.ReadAllText(@System.IO.Path.GetTempPath() + "dungeon.txt");
+		
+	}
+	
+	public Grid3D<Cell> DeSerialize(String data)
+	{
+		MemoryStream stream = new MemoryStream();
+		StreamWriter writer = new StreamWriter(stream);
+		writer.Write(data);
+		writer.Flush();
+		stream.Position = 0;
+		
+		XmlDictionaryReader reader = XmlDictionaryReader.CreateTextReader(stream, new XmlDictionaryReaderQuotas());
+		var serializer = GetSerializer();
+		
+		SerializedDungeon deserializedDungeon = serializer.ReadObject(reader,true) as SerializedDungeon;
+		
+		stream.Close();
+		writer.Close();
+		
+		return deserializedDungeon.Grid;
+	}
+}
+
+[DataContract]
 public abstract class DungeonLevelSegment
 {	
+	[DataMember]
+	public String id { get; private set; }
+	
 	public DungeonLevelSegment()
 	{
-		
+		id = Guid.NewGuid().ToString("N");
 	}
 	
 	public virtual void AssignCells(Grid3D<Cell> grid)
@@ -188,6 +284,7 @@ public abstract class DungeonLevelSegment
 	}
 }
 
+[DataContract]
 public abstract class PathfindingLevelSegment : DungeonLevelSegment
 {
 	public Vector3I Start { get; protected set; }
@@ -226,9 +323,10 @@ public abstract class PathfindingLevelSegment : DungeonLevelSegment
 	}
 }
 
+[DataContract]
 public class Room : DungeonLevelSegment
 {
-	private List<Vector3I> _occupiedPositions;
+	public List<Vector3I> _occupiedPositions { get; private set; }
 	
 	public Room(Vector3I position, Vector3I size) : base()
 	{
@@ -313,13 +411,14 @@ public class Room : DungeonLevelSegment
 	{
 		if (cellFrom.HasConnection(cellTo)) return true;
 		if (cellTo.IsEmpty()) return false;
-		if (!cellFrom.Segments.Intersect(cellTo.Segments).Any()) return false;
+		if (!cellFrom.Segments.Select(x => x.id).Intersect(cellTo.Segments.Select(x => x.id)).Any()) return false;
 		if (!cellTo.Segments.Any(i => i.GetType() == typeof(Room))) return false;
 		
 		return true;
 	}
 }
 
+[DataContract]
 public class Hallway : PathfindingLevelSegment
 {
 	public Hallway(Vector3I start, Vector3I end) : base(start, end)
@@ -392,6 +491,7 @@ public class Hallway : PathfindingLevelSegment
 	}
 }
 
+[DataContract]
 public class Stairway : PathfindingLevelSegment
 {
 	public Stairway(Vector3I start, Vector3I end) : base(start, end)
@@ -457,7 +557,7 @@ public class Stairway : PathfindingLevelSegment
 			}
 		}
 		
-		if (!cellFrom.Segments.Intersect(cellTo.Segments).Any()) return false;
+		if (!cellFrom.Segments.Select(x => x.id).Intersect(cellTo.Segments.Select(x => x.id)).Any()) return false;
 		
 		return true;
 	}
@@ -503,10 +603,14 @@ public class Stairway : PathfindingLevelSegment
 	}
 }
 
+[DataContract]
 public class Cell
 {
+	[DataMember]
 	public List<DungeonLevelSegment> Segments { get; private set; }
+	[DataMember]
 	public List<Vector3I> Connections { get; private set; }
+	[DataMember]
 	public Vector3I Position { get; private set; }
 	
 	public Cell(Vector3I position)

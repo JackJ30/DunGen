@@ -2,12 +2,18 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using Godot;
+using System.Text.Json;
+using System.Runtime.Serialization;
 
+[DataContract]
 public partial class Grid3D<T> {
-	T[] data;
-
+	[DataMember]
+	public T[] Data;
+	[DataMember]
 	public Vector3I Size { get; private set; }
+	[DataMember]
 	public Aabb Bounds { get; private set; }
+	[DataMember]
 	public Vector3I Offset { get; set; }
 
 	public Grid3D(Vector3I size, Vector3I offset) {
@@ -15,7 +21,7 @@ public partial class Grid3D<T> {
 		Offset = offset;
 		Bounds = new Aabb(offset, size);
 
-		data = new T[size.X * size.Y * size.Z];
+		Data = new T[size.X * size.Y * size.Z];
 	}
 
 	public void AssignAll(Func<Vector3I, T> valueFunction)
@@ -69,11 +75,16 @@ public partial class Grid3D<T> {
 	public T this[Vector3I pos] {
 		get {
 			pos += Offset;
-			return data[GetIndex(pos)];
+			return Data[GetIndex(pos)];
 		}
 		set {
 			pos += Offset;
-			data[GetIndex(pos)] = value;
+			Data[GetIndex(pos)] = value;
 		}
+	}
+	
+	public T[] GetData()
+	{
+		return Data;
 	}
 }

@@ -1,7 +1,7 @@
 [gd_scene load_steps=22 format=3 uid="uid://cj3okxqxub5tq"]
 
-[ext_resource type="Script" path="res://Scenes/World.gd" id="1_csfu3"]
-[ext_resource type="PackedScene" uid="uid://dxjpw55fruf4q" path="res://Entities/Camera/FreeCam.tscn" id="2_vo7cv"]
+[ext_resource type="Script" path="res://Scenes/Main/World.gd" id="1_5l2nb"]
+[ext_resource type="PackedScene" uid="uid://dxjpw55fruf4q" path="res://Entities/Camera/FreeCam.tscn" id="2_h0i45"]
 [ext_resource type="Texture2D" uid="uid://bxoqrc0v2hldm" path="res://addons/kenney_prototype_textures/dark/texture_01.png" id="3_evaeo"]
 [ext_resource type="Texture2D" uid="uid://ihacppnjos7v" path="res://addons/kenney_prototype_textures/green/texture_08.png" id="4_23kkp"]
 [ext_resource type="Script" path="res://Generation/Scripts/DungeonRenderer.cs" id="5_d0dlm"]
@@ -52,9 +52,9 @@ albedo_texture = ExtResource("4_23kkp")
 uv1_scale = Vector3(0.5, 0.5, 0.5)
 uv1_triplanar = true
 
-[node name="World" type="Node3D"]
-script = ExtResource("1_csfu3")
-free_cam = ExtResource("2_vo7cv")
+[node name="Main" type="Node3D"]
+script = ExtResource("1_5l2nb")
+free_cam = ExtResource("2_h0i45")
 
 [node name="CanvasLayer" type="CanvasLayer" parent="."]
 
