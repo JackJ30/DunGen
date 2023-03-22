@@ -29,6 +29,7 @@ public partial class DungeonGenerator : Node
 	private Delaunay3D _delaunay;
 	private HashSet<Prim.Edge> _hallwayEdges;
 	private DungeonRenderer renderer;
+	private DungeonRoomGenerator roomGenerator;
 	
 	private List<Room> _rooms;
 	private List<Stairway> _stairways;
@@ -45,14 +46,17 @@ public partial class DungeonGenerator : Node
 		
 		renderer = this.GetNode("DungeonRenderer") as DungeonRenderer;
 		renderer.Initialize(_grid);
+		roomGenerator = new DungeonRoomGenerator();
 		
 		_rooms = new List<Room>();
 		_stairways = new List<Stairway>();
 		
-		PlaceRooms();
+		// Test Room Generation
+		
+		/*PlaceRooms();
 		Triangulate();
 		CreateHallwayConnections();
-		PathfindHallways();
+		PathfindHallways();*/
 		DisplayCells();
 	}
 
@@ -80,12 +84,12 @@ public partial class DungeonGenerator : Node
 				}
 			}
 			
-			if (!addRoom) continue;
-			if (!newRoom.InBounds(_grid)) continue;
-			
-			_rooms.Add(newRoom);
-			newRoom.AssignCells(_grid);
-			roomsSpawned += 1;
+				if (!addRoom) continue;
+				if (!newRoom.InBounds(_grid)) continue;
+				
+				_rooms.Add(newRoom);
+				newRoom.AssignCells(_grid);
+				roomsSpawned += 1;
 			numTries = 0;
 		}
 	}
@@ -327,6 +331,8 @@ public abstract class PathfindingLevelSegment : DungeonLevelSegment
 public class Room : DungeonLevelSegment
 {
 	public List<Vector3I> _occupiedPositions { get; private set; }
+	
+	private RoomGeneration _roomGeneration;
 	
 	public Room(Vector3I position, Vector3I size) : base()
 	{
