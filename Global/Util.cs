@@ -9,12 +9,17 @@ public static class Util
 	{
 		List<Vector3I> final = new List<Vector3I>();
 		
-		for (int x = (int)original.Position.X; x <= (int)original.Position.X + (int)original.Size.X; x++)
+		GD.Print((int)Math.Round(original.Position.X,0));
+		GD.Print((int)Math.Round(original.Size.X,0));
+		for (int x = (int)Math.Round(original.Position.X,0); x <= (int)Math.Round(original.Position.X,0) + (int)Math.Round(original.Size.X,0); x++)
 		{
-			for (int y = (int)original.Position.Y; y <= (int)original.Position.Y + (int)original.Size.Y; y++)
+			GD.Print("testx");
+			for (int y = (int)Math.Round(original.Position.Y,0); y <= (int)Math.Round(original.Position.Y,0) + (int)Math.Round(original.Size.Y,0); y++)
 			{
-				for (int z = (int)original.Position.Z; z <= (int)original.Position.Z + (int)original.Size.Z; z++)
+				GD.Print("testy");
+				for (int z = (int)Math.Round(original.Position.Z,0); z <= (int)Math.Round(original.Position.Z,0) + (int)Math.Round(original.Size.Z,0); z++)
 				{
+					GD.Print("testz");
 					final.Add(new Vector3I(x,y,z));
 				}
 			}
@@ -22,6 +27,20 @@ public static class Util
 		
 		return final;
 	}
+	
+	public static Vector3I GetSmallestIndividual(Vector3I[] input)
+	{
+		Vector3I smallest = new Vector3I(int.MaxValue,int.MaxValue,int.MaxValue);
+		
+		foreach (Vector3I vector3I in input)
+		{
+			if (vector3I.X < smallest.X) { smallest.X = vector3I.X; }
+			if (vector3I.Y < smallest.Y) { smallest.Y = vector3I.Y; }
+			if (vector3I.Z < smallest.Z) { smallest.Z = vector3I.Z; }
+		}
+		
+		return smallest;
+	} 
 }
 
 public class FloodFill<T>

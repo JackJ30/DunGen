@@ -51,10 +51,8 @@ public partial class DungeonGenerator : Node
 		_rooms = new List<Room>();
 		_stairways = new List<Stairway>();
 		
-		// Test Room Generation
-		
-		/*PlaceRooms();
-		Triangulate();
+		PlaceRooms();
+		/*Triangulate();
 		CreateHallwayConnections();
 		PathfindHallways();*/
 		DisplayCells();
@@ -62,6 +60,7 @@ public partial class DungeonGenerator : Node
 
 	private void PlaceRooms()
 	{
+		/*
 		int roomsSpawned = 0;
 		int numTries = 0;
 		while (roomsSpawned < RoomCount)
@@ -91,7 +90,11 @@ public partial class DungeonGenerator : Node
 				newRoom.AssignCells(_grid);
 				roomsSpawned += 1;
 			numTries = 0;
-		}
+		}*/
+		
+		Room testRoom = roomGenerator.TestRoomGeneration();
+		testRoom.AssignCells(_grid);
+		_rooms.Add(testRoom);
 	}
 	
 	private void Triangulate()
@@ -330,28 +333,16 @@ public abstract class PathfindingLevelSegment : DungeonLevelSegment
 [DataContract]
 public class Room : DungeonLevelSegment
 {
-	public List<Vector3I> _occupiedPositions { get; private set; }
+	public RoomGeneration RoomGeneration { get; private set; }
 	
-	private RoomGeneration _roomGeneration;
-	
-	public Room(Vector3I position, Vector3I size) : base()
+	public Room(RoomGeneration roomGeneration) : base()
 	{
-		_occupiedPositions = new List<Vector3I>();
-		for(int x = position.X; x < position.X + size.X; x++)
-		{
-			for(int y = position.Y; y < position.Y + size.Y; y++)
-			{
-				for(int z = position.Z; z < position.Z + size.Z; z++)
-				{
-					_occupiedPositions.Add(new Vector3I(x,y,z));
-				}
-			}
-		}
+		RoomGeneration = roomGeneration;
 	}
 	
 	public override void AssignCells(Grid3D<Cell> grid)
 	{
-		foreach (Vector3I position in _occupiedPositions)
+		foreach (Vector3I position in RoomGeneration.Shape)
 		{
 			grid[position].Segments.Add(this);
 		}
@@ -363,16 +354,16 @@ public class Room : DungeonLevelSegment
 		float meanPositionY = 0f;
 		float meanPositionZ = 0f;
 		
-		foreach (Vector3I position in _occupiedPositions)
+		foreach (Vector3I position in RoomGeneration.Shape)
 		{
 			meanPositionX += (float)position.X;
 			meanPositionY += (float)position.Y;
 			meanPositionZ += (float)position.Z;
 		}
 		
-		meanPositionX /= _occupiedPositions.Count();
-		meanPositionY /= _occupiedPositions.Count();
-		meanPositionZ /= _occupiedPositions.Count();
+		meanPositionX /= RoomGeneration.Shape.Count();
+		meanPositionY /= RoomGeneration.Shape.Count();
+		meanPositionZ /= RoomGeneration.Shape.Count();
 		
 		return new Vector3(meanPositionX,meanPositionY,meanPositionZ);
 	}
@@ -381,7 +372,7 @@ public class Room : DungeonLevelSegment
 	{
 		List<Vector3I> result = new List<Vector3I>();
 		
-		foreach (Vector3I position in _occupiedPositions)
+		foreach (Vector3I position in RoomGeneration.Shape)
 		{
 			if (!grid.InBounds(position + new Vector3I(0,-1,0))) result.Add(position);
 			else if (!grid[position + new Vector3I(0,-1,0)].Segments.Contains(this)) result.Add(position);
@@ -392,12 +383,12 @@ public class Room : DungeonLevelSegment
 	
 	public bool Intersects(Room other) // Maybe revamp with one cell padding
 	{
-		return _occupiedPositions.Intersect(other.GetOccupiedPositions()).Any();
+		return RoomGeneration.Shape.Intersect(other.GetOccupiedPositions()).Any();
 	}
 	
 	public bool InBounds(Grid3D<Cell> grid)
 	{
-		foreach (Vector3I position in _occupiedPositions)
+		foreach (Vector3I position in RoomGeneration.Shape)
 		{
 			if(!grid.InBounds(position))
 			{
@@ -410,7 +401,7 @@ public class Room : DungeonLevelSegment
 	
 	public override Vector3I[] GetOccupiedPositions()
 	{
-		return _occupiedPositions.ToArray();
+		return RoomGeneration.Shape.ToArray();
 	}
 	
 	public override bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)

@@ -128,7 +128,7 @@ size = Vector3(1, 2.51027, 1)
 material = SubResource("StandardMaterial3D_seayr")
 
 [node name="OmniLight3D" type="OmniLight3D" parent="Environment"]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55967, 0)
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.68767, 0)
 light_energy = 3.061
 light_indirect_energy = 13.42
 
