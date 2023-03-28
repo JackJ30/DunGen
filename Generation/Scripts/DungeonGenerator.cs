@@ -92,9 +92,11 @@ public partial class DungeonGenerator : Node
 			numTries = 0;
 		}*/
 		
-		Room testRoom = roomGenerator.TestRoomGeneration();
-		testRoom.AssignCells(_grid);
-		_rooms.Add(testRoom);
+		foreach (Room room in roomGenerator.GenerateRoomCluster(2))
+		{
+			room.AssignCells(_grid);
+			_rooms.Add(room);
+		}
 	}
 	
 	private void Triangulate()
