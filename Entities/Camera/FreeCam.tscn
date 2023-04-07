@@ -7,4 +7,4 @@ script = ExtResource("1_dwtej")
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
 light_energy = 2.0
-omni_range = 7.42
+omni_range = 32.769

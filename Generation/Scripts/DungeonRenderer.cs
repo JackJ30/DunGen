@@ -127,6 +127,11 @@ public partial class DungeonRenderer : Node
 		newStairway.GlobalRotation = newRotation;
 	}
 	
+	public void DebugLine(Vector3 point1, Vector3 point2)
+	{
+		GetNode("/root/Draw3D").Call("line",GridToWorldPos(point1,CellScale),GridToWorldPos(point2,CellScale));
+	}
+	
 	bool HasNeighbor(Cell cell, Vector3I offset)
 	{
 		if (!_grid.InBounds(cell.Position + offset)) return false;

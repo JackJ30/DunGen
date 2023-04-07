@@ -16,13 +16,11 @@ public class DungeonRoomGenerator
 			
 			Room generatedRoom = null;
 			
-			while (generatedRoom == null)
+			foreach (RoomCluster.ExposedNormal normalFrom in exposedNormals.OrderBy(x => GD.Randf()))
 			{
-				int random = GD.RandRange(0,exposedNormals.Count - 1);
-				GD.Print(random);
-				RoomCluster.ExposedNormal normalFrom = exposedNormals[random];
-				generatedRoom = new Room(new MediumRoomGeneration(normalFrom.Position, normalFrom.Direction));
-				if(!cluster.AddRoom(generatedRoom)) generatedRoom = null;
+				if (normalFrom.Direction == Vector3I.Up || normalFrom.Direction == Vector3I.Down) continue;
+				generatedRoom = new Room(new MediumRoomGeneration(normalFrom.Position + normalFrom.Direction, normalFrom.Direction));
+				if(cluster.AddRoom(generatedRoom)) break;
 			}
 		}
 		
@@ -42,16 +40,17 @@ public class RoomCluster
 	
 	public bool AddRoom(Room addend)
 	{
-		//if (GetCompositeShape().Intersect(addend.RoomGeneration.Shape).Any()) return false;
+		if (GetCompositeShape().Intersect(addend.RoomGeneration.Shape).Any()) return false;
 		
 		Rooms.Add(addend);
 		return true;
 	}
 	
-	public void Abs() 
+	public Vector3I Abs() 
 	{
 		Vector3I smallest = Util.GetSmallestIndividual(Rooms.Select(room => Util.GetSmallestIndividual(room.RoomGeneration.Shape.ToArray())).ToArray());
 		Translate(-smallest);
+		return -smallest;
 	}
 	
 	public void Translate(Vector3I amount)
