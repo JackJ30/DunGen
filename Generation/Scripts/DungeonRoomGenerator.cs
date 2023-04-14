@@ -10,18 +10,26 @@ public class DungeonRoomGenerator
 		RoomCluster cluster = new RoomCluster();
 		cluster.AddRoom(new Room(new MediumRoomGeneration(Vector3I.Zero, Vector3I.Back)));
 		
+		GD.Print("test0");
+		
 		for (int i = 0; i < numRooms - 1; i++)
 		{
-			List<RoomCluster.ExposedNormal> exposedNormals = cluster.GetAllExposedNormals();
+			List<RoomCluster.RoomFaceNormal> roomFaceNormals = new List<RoomCluster.RoomFaceNormal>();
+			List<RoomCluster.RoomFace> roomFaces = cluster.GetFaces(cluster.GetAllExposedNormals()).Where(face => face.Direction != Vector3I.Up || face.Direction != Vector3I.Up).ToList(); // THIS LINE IS FUCKED UP YALL
+			roomFaces.ForEach( face => { face.ExposedNormals.ForEach( normal => { roomFaceNormals.Add(new RoomCluster.RoomFaceNormal(face,normal)); }); });
+			int maxHeightDifference = roomFaces.Max(face => face.MaxHeight - face.MinHeight);
 			
 			Room generatedRoom = null;
 			
-			foreach (RoomCluster.ExposedNormal normalFrom in exposedNormals.OrderBy(x => GD.Randf()))
+			GD.Print("test1");
+			/*
+			foreach (RoomCluster.ExposedNormal normalFrom in roomFaceNormals.Select(roomFaceNormal => roomFaceNormal.HeldNormal).OrderBy(x => GD.Randf()))
 			{
+				GD.Print("test2");
 				if (normalFrom.Direction == Vector3I.Up || normalFrom.Direction == Vector3I.Down) continue;
 				generatedRoom = new Room(new MediumRoomGeneration(normalFrom.Position + normalFrom.Direction, normalFrom.Direction));
 				if(cluster.AddRoom(generatedRoom)) break;
-			}
+			}*/
 		}
 		
 		cluster.Abs();
@@ -74,19 +82,7 @@ public class RoomCluster
 		return exposedNormals.ToList();
 	}
 	
-	List<Vector3I> GetCompositeShape()
-	{
-		IEnumerable<Vector3I> compositeShape = Enumerable.Empty<Vector3I>();
-		
-		foreach (Room room in Rooms)
-		{
-			compositeShape = compositeShape.Concat(room.RoomGeneration.Shape);
-		}
-		
-		return compositeShape.ToList();
-	}
-	
-	List<RoomFace> GetFaces(List<ExposedNormal> exposedNormals)
+	public List<RoomFace> GetFaces(List<ExposedNormal> exposedNormals) // May Not be working
 	{
 		List<RoomFace> faces = new List<RoomFace>();
 		List<ExposedNormal> normalsLeft = new List<ExposedNormal>(exposedNormals);
@@ -97,10 +93,22 @@ public class RoomCluster
 			List<ExposedNormal> normalsInFace = new FloodFill<ExposedNormal>(exposedNormals, start, GetNeighbors, normal => normal.Direction == start.Direction).GetOutput();
 			normalsLeft = normalsLeft.Except(normalsInFace).ToList();
 			
-			faces.Add(new RoomFace(normalsInFace.Select(normal => normal.Position).ToList(), start.Direction));
+			faces.Add(new RoomFace(normalsInFace));
 		}
 		
-		return new List<RoomFace>();
+		return faces;
+	}
+	
+	List<Vector3I> GetCompositeShape()
+	{
+		IEnumerable<Vector3I> compositeShape = Enumerable.Empty<Vector3I>();
+		
+		foreach (Room room in Rooms)
+		{
+			compositeShape = compositeShape.Concat(room.RoomGeneration.Shape);
+		}
+		
+		return compositeShape.ToList();
 	}
 	
 	public ExposedNormal[] GetNeighbors(ExposedNormal input, List<ExposedNormal> all)
@@ -116,8 +124,8 @@ public class RoomCluster
 			Direction = direction;
 		}
 		
-		public Vector3I Position;
-		public Vector3I Direction;
+		public Vector3I Position { get; private set; }
+		public Vector3I Direction { get; private set; }
 		
 		public static List<ExposedNormal> GetExposedNormalsAtPosition(Vector3I position, List<Vector3I> shape)
 		{
@@ -137,14 +145,33 @@ public class RoomCluster
 
 	public class RoomFace
 	{
-		public RoomFace(List<Vector3I> interiorPositions, Vector3I direction)
-		{
-			_interiorPositions = interiorPositions;
-			_direction = direction;
-		}
+		public List<ExposedNormal> ExposedNormals { get; private set; }
 		
-		private List<Vector3I> _interiorPositions;
-		private Vector3I _direction;
+		public int MinHeight { get; private set; }
+		public int MaxHeight { get; private set; }
+		public Vector3I Direction { get; private set; }
+		
+		public RoomFace(List<ExposedNormal> exposedNormals)
+		{
+			ExposedNormals = exposedNormals;
+			
+			if (exposedNormals.Any()) Direction = exposedNormals.First().Direction;
+			
+			MinHeight = ExposedNormals.Min(x => x.Position.Y);
+			MaxHeight = ExposedNormals.Max(x => x.Position.Y);
+		}
+	}
+	
+	public struct RoomFaceNormal
+	{
+		public RoomFace HeldFace {get;private set;}
+		public ExposedNormal HeldNormal {get;private set;}
+		
+		public RoomFaceNormal(RoomFace heldFace, ExposedNormal heldNormal)
+		{
+			HeldFace = heldFace;
+			HeldNormal = heldNormal;
+		}
 	}
 	
 	/*
@@ -171,6 +198,28 @@ public abstract class RoomGeneration
 		return shape;
 	}
 	
+	protected List<Vector3I> GenerateBaseShape(int length, int width, int height, Vector3I pointFrom, Vector3I direction)
+	{
+		List<Vector3I> shape = new List<Vector3I>();
+		
+		int widthOffset = GD.RandRange(-width+1,0); // This might be a plus/minus one issue
+		Vector3 directionConverted = (Vector3)direction;
+		Vector3I offsetPosition = pointFrom + (widthOffset * (Vector3I)directionConverted.Rotated(Vector3.Up, (float)-Math.PI/2));
+		
+		for (int l = 0; l < length; l++)
+		{
+			for (int w = 0; w < width; w++)
+			{
+				for (int h = 0; h < height; h++)
+				{
+					shape.Add(offsetPosition + (direction * l) + (Vector3I.Up * h) + ((Vector3I)directionConverted.Rotated(Vector3.Up, (float)-Math.PI/2) * w));
+				}
+			}
+		}
+		
+		return shape;
+	}
+	
 	public void Translate(Vector3I amount)
 	{
 		for (int i = 0; i < Shape.Count; i++)
@@ -189,27 +238,11 @@ public class MediumRoomGeneration : RoomGeneration
 	
 	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction)
 	{
-		List<Vector3I> shape = new List<Vector3I>();
-		
 		int length = GD.RandRange(3,6);
 		int width = GD.RandRange(3,6);
 		int height = 1;
 		if (GD.Randf() <= 0.4f) { height += 1; }
-		int widthOffset = GD.RandRange(-width,0); // This might be a plus/minus one issue
-		Vector3 directionConverted = (Vector3)direction;
-		Vector3I offsetPosition = pointFrom + (widthOffset * (Vector3I)directionConverted.Rotated(Vector3.Up, (float)-Math.PI/2));
 		
-		for (int l = 0; l < length; l++)
-		{
-			for (int w = 0; w < width; w++)
-			{
-				for (int h = 0; h < height; h++)
-				{
-					shape.Add(offsetPosition + (direction * l) + (Vector3I.Up * h) + ((Vector3I)directionConverted.Rotated(Vector3.Up, (float)-Math.PI/2) * w));
-				}
-			}
-		}
-		
-		return shape;
-	} 
+		return GenerateBaseShape(length,width,height,pointFrom,direction);
+	}
 }

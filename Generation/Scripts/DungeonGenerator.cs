@@ -52,9 +52,6 @@ public partial class DungeonGenerator : Node
 		_stairways = new List<Stairway>();
 		
 		PlaceRooms();
-		/*Triangulate();
-		CreateHallwayConnections();
-		PathfindHallways();*/
 		DisplayCells();
 	}
 
@@ -92,6 +89,7 @@ public partial class DungeonGenerator : Node
 			numTries = 0;
 		}*/
 		
+		GD.Print("test-1");
 		foreach (Room room in roomGenerator.GenerateRoomCluster(8))
 		{
 			room.AssignCells(_grid);
