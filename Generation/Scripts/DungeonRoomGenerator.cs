@@ -5,10 +5,18 @@ using System.Linq;
 
 public class DungeonRoomGenerator
 {
+	public RoomGeneration GetRoomGenerationFromDistribution(Vector3I pointFrom, Vector3I direction)
+	{
+		float random = GD.Randf();
+		
+		if (random < 0.5f) return new MediumRoomGeneration(pointFrom,direction);
+		else return new LongRoomGeneration(pointFrom,direction);
+	}
+	
 	public List<Room> GenerateRoomCluster(int numRooms)
 	{
 		RoomCluster cluster = new RoomCluster();
-		cluster.AddRoom(new Room(new MediumRoomGeneration(Vector3I.Zero, Vector3I.Back)));
+		cluster.AddRoom(new Room(GetRoomGenerationFromDistribution(Vector3I.Zero, Vector3I.Back)));
 		
 		for (int i = 0; i < numRooms - 1; i++)
 		{
@@ -36,7 +44,7 @@ public class DungeonRoomGenerator
 				RoomCluster.ExposedNormal normalFrom = roomPlacementNormalsQueue.Dequeue().HeldNormal;
 				
 				if (normalFrom.Direction == Vector3I.Up || normalFrom.Direction == Vector3I.Down) continue;
-				generatedRoom = new Room(new MediumRoomGeneration(normalFrom.Position + normalFrom.Direction, normalFrom.Direction));
+				generatedRoom = new Room(GetRoomGenerationFromDistribution(normalFrom.Position + normalFrom.Direction, normalFrom.Direction));
 				if(cluster.AddRoom(generatedRoom)) break;
 			}
 		}
@@ -261,6 +269,24 @@ public class MediumRoomGeneration : RoomGeneration
 		int width = GD.RandRange(3,6);
 		int height = 1;
 		if (GD.Randf() <= 0.4f) { height += 1; }
+		
+		return GenerateBaseShape(length,width,height,pointFrom,direction);
+	}
+}
+
+public class LongRoomGeneration : RoomGeneration
+{
+	public LongRoomGeneration(Vector3I pointFrom, Vector3I direction) : base(pointFrom, direction)
+	{
+		Shape = GenerateShape(pointFrom, direction);
+	}
+	
+	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction)
+	{
+		int length = GD.RandRange(6,8);
+		int width = GD.RandRange(2,3);
+		int height = 1;
+		if (GD.Randf() <= 0.25f) { height += 1; }
 		
 		return GenerateBaseShape(length,width,height,pointFrom,direction);
 	}
