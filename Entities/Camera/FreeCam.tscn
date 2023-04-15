@@ -6,5 +6,6 @@
 script = ExtResource("1_dwtej")
 
 [node name="OmniLight3D" type="OmniLight3D" parent="."]
+light_color = Color(0.898039, 0.607843, 0.886275, 1)
 light_energy = 2.0
 omni_range = 32.769

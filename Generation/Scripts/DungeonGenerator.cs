@@ -89,9 +89,9 @@ public partial class DungeonGenerator : Node
 			numTries = 0;
 		}*/
 		
-		GD.Print("test-1");
-		foreach (Room room in roomGenerator.GenerateRoomCluster(8))
+		foreach (Room room in roomGenerator.GenerateRoomCluster(20))
 		{
+			GD.Print("test-1");
 			room.AssignCells(_grid);
 			_rooms.Add(room);
 		}
@@ -342,7 +342,7 @@ public class Room : DungeonLevelSegment
 	
 	public override void AssignCells(Grid3D<Cell> grid)
 	{
-		foreach (Vector3I position in RoomGeneration.Shape)
+		foreach (Vector3I position in RoomGeneration.GlobalShape)
 		{
 			grid[position].Segments.Add(this);
 		}
@@ -354,16 +354,16 @@ public class Room : DungeonLevelSegment
 		float meanPositionY = 0f;
 		float meanPositionZ = 0f;
 		
-		foreach (Vector3I position in RoomGeneration.Shape)
+		foreach (Vector3I position in RoomGeneration.GlobalShape)
 		{
 			meanPositionX += (float)position.X;
 			meanPositionY += (float)position.Y;
 			meanPositionZ += (float)position.Z;
 		}
 		
-		meanPositionX /= RoomGeneration.Shape.Count();
-		meanPositionY /= RoomGeneration.Shape.Count();
-		meanPositionZ /= RoomGeneration.Shape.Count();
+		meanPositionX /= RoomGeneration.GlobalShape.Count();
+		meanPositionY /= RoomGeneration.GlobalShape.Count();
+		meanPositionZ /= RoomGeneration.GlobalShape.Count();
 		
 		return new Vector3(meanPositionX,meanPositionY,meanPositionZ);
 	}
@@ -372,7 +372,7 @@ public class Room : DungeonLevelSegment
 	{
 		List<Vector3I> result = new List<Vector3I>();
 		
-		foreach (Vector3I position in RoomGeneration.Shape)
+		foreach (Vector3I position in RoomGeneration.GlobalShape)
 		{
 			if (!grid.InBounds(position + new Vector3I(0,-1,0))) result.Add(position);
 			else if (!grid[position + new Vector3I(0,-1,0)].Segments.Contains(this)) result.Add(position);
@@ -383,12 +383,12 @@ public class Room : DungeonLevelSegment
 	
 	public bool Intersects(Room other) // Maybe revamp with one cell padding
 	{
-		return RoomGeneration.Shape.Intersect(other.GetOccupiedPositions()).Any();
+		return RoomGeneration.GlobalShape.Intersect(other.GetOccupiedPositions()).Any();
 	}
 	
 	public bool InBounds(Grid3D<Cell> grid)
 	{
-		foreach (Vector3I position in RoomGeneration.Shape)
+		foreach (Vector3I position in RoomGeneration.GlobalShape)
 		{
 			if(!grid.InBounds(position))
 			{
@@ -401,7 +401,7 @@ public class Room : DungeonLevelSegment
 	
 	public override Vector3I[] GetOccupiedPositions()
 	{
-		return RoomGeneration.Shape.ToArray();
+		return RoomGeneration.GlobalShape.ToArray();
 	}
 	
 	public override bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
