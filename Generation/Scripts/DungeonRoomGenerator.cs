@@ -10,30 +10,61 @@ public class DungeonRoomGenerator
 		RoomCluster cluster = new RoomCluster();
 		cluster.AddRoom(new Room(new MediumRoomGeneration(Vector3I.Zero, Vector3I.Back)));
 		
-		GD.Print("test0");
-		
 		for (int i = 0; i < numRooms - 1; i++)
 		{
-			List<RoomCluster.RoomFaceNormal> roomFaceNormals = new List<RoomCluster.RoomFaceNormal>();
-			List<RoomCluster.RoomFace> roomFaces = cluster.GetFaces(cluster.GetAllExposedNormals()).Where(face => face.Direction != Vector3I.Up || face.Direction != Vector3I.Up).ToList(); // THIS LINE IS FUCKED UP YALL
-			roomFaces.ForEach( face => { face.ExposedNormals.ForEach( normal => { roomFaceNormals.Add(new RoomCluster.RoomFaceNormal(face,normal)); }); });
+			SimplePriorityQueue<RoomPlacementNormal, float> roomPlacementNormalsQueue = new SimplePriorityQueue<RoomPlacementNormal, float>();
+			List<RoomCluster.RoomFace> roomFaces = cluster.GetFaces(cluster.GetAllExposedNormals()).Where(face => face.Direction != Vector3I.Up || face.Direction != Vector3I.Up).ToList();
+			
 			int maxHeightDifference = roomFaces.Max(face => face.MaxHeight - face.MinHeight);
+			int desiredFloor = 0;
+			for (int j = 0; j < maxHeightDifference; j++)
+			{
+				if (GD.Randf() < 0.25f) desiredFloor++; // ROOM FLOOR PRIORITY INCREASE CHANCE
+				else break;
+			}
+			
+			roomFaces.ForEach( face => { face.ExposedNormals.ForEach( normal => {
+				RoomPlacementNormal roomPlacementNormal = new RoomPlacementNormal(face,normal);
+				roomPlacementNormalsQueue.Enqueue(roomPlacementNormal, NormalPriorityFunction(roomPlacementNormal, desiredFloor)); 
+				}); 
+			});
 			
 			Room generatedRoom = null;
 			
-			GD.Print("test1");
-			/*
-			foreach (RoomCluster.ExposedNormal normalFrom in roomFaceNormals.Select(roomFaceNormal => roomFaceNormal.HeldNormal).OrderBy(x => GD.Randf()))
+			while (roomPlacementNormalsQueue.Count > 0)
 			{
-				GD.Print("test2");
+				RoomCluster.ExposedNormal normalFrom = roomPlacementNormalsQueue.Dequeue().HeldNormal;
+				
 				if (normalFrom.Direction == Vector3I.Up || normalFrom.Direction == Vector3I.Down) continue;
 				generatedRoom = new Room(new MediumRoomGeneration(normalFrom.Position + normalFrom.Direction, normalFrom.Direction));
 				if(cluster.AddRoom(generatedRoom)) break;
-			}*/
+			}
 		}
 		
 		cluster.Abs();
 		return cluster.Rooms;
+	}
+	
+	float NormalPriorityFunction(RoomPlacementNormal roomPlacementNormal, int desiredFloor)
+	{
+		float priority = GD.Randf();
+		if (roomPlacementNormal.HeldNormal.Position.Y == roomPlacementNormal.HeldFace.MinHeight + desiredFloor)
+		{
+			priority -= 0.5f; // ROOM FLOOR PRIORITY WEIGHTING
+		}
+		return priority;
+	}
+	
+	public struct RoomPlacementNormal
+	{
+		public RoomCluster.RoomFace HeldFace {get;private set;}
+		public RoomCluster.ExposedNormal HeldNormal {get;private set;}
+		
+		public RoomPlacementNormal(RoomCluster.RoomFace heldFace, RoomCluster.ExposedNormal heldNormal)
+		{
+			HeldFace = heldFace;
+			HeldNormal = heldNormal;
+		}
 	}
 }
 
@@ -89,8 +120,8 @@ public class RoomCluster
 		
 		while (normalsLeft.Any())
 		{
-			ExposedNormal start = exposedNormals[0]; 
-			List<ExposedNormal> normalsInFace = new FloodFill<ExposedNormal>(exposedNormals, start, GetNeighbors, normal => normal.Direction == start.Direction).GetOutput();
+			ExposedNormal start = normalsLeft[0]; 
+			List<ExposedNormal> normalsInFace = new FloodFill<ExposedNormal>(normalsLeft, start, GetNeighbors, normal => normal.Direction == start.Direction).GetOutput();
 			normalsLeft = normalsLeft.Except(normalsInFace).ToList();
 			
 			faces.Add(new RoomFace(normalsInFace));
@@ -159,18 +190,6 @@ public class RoomCluster
 			
 			MinHeight = ExposedNormals.Min(x => x.Position.Y);
 			MaxHeight = ExposedNormals.Max(x => x.Position.Y);
-		}
-	}
-	
-	public struct RoomFaceNormal
-	{
-		public RoomFace HeldFace {get;private set;}
-		public ExposedNormal HeldNormal {get;private set;}
-		
-		public RoomFaceNormal(RoomFace heldFace, ExposedNormal heldNormal)
-		{
-			HeldFace = heldFace;
-			HeldNormal = heldNormal;
 		}
 	}
 	
