@@ -257,6 +257,24 @@ public abstract class RoomGeneration
 		return shape;
 	}
 	
+	protected List<Vector3I> GetPositionsInBounds(Vector3I pos1, Vector3I pos2) // pos1 < pos2 ALL ELEMENTS
+	{
+		List<Vector3I> positions = new List<Vector3I>();
+		
+		for (int x = pos1.X; x < pos2.X; x++)
+		{
+			for (int y = pos1.Y; y < pos2.Y; y++)
+			{
+				for (int z = pos1.Z; z < pos2.Z; z++)
+				{
+					positions.Add(new Vector3I(x,y,z));
+				}
+			}
+		}
+		
+		return positions;
+	}
+	
 	public void Translate(Vector3I amount)
 	{
 		_origin += amount;
@@ -289,7 +307,9 @@ public class MediumRoomGeneration : RoomGeneration
 		int height = 1;
 		if (GD.Randf() <= 0.4f) { height += 1; }
 		
-		return GenerateBaseShape(length,width,height);
+		int widthOffset = GD.RandRange(-width+1,0);
+		
+		return GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
 	}
 }
 
@@ -307,7 +327,9 @@ public class LongRoomGeneration : RoomGeneration
 		int height = 1;
 		if (GD.Randf() <= 0.25f) { height += 1; }
 		
-		return GenerateBaseShape(length,width,height);
+		int widthOffset = GD.RandRange(-width+1,0);
+		
+		return GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
 	}
 }
 
@@ -325,6 +347,28 @@ public class LargeRoomGeneration : RoomGeneration
 		int height = 2;
 		if (GD.Randf() <= 0.25f) { height += 1; }
 		
-		return GenerateBaseShape(length,width,height);
+		int widthOffset = GD.RandRange(-width+1,0);
+		
+		return GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
+	}
+}
+
+public class TShapedRoomGeneration : RoomGeneration
+{
+	public TShapedRoomGeneration(Vector3I pointFrom, Vector3I direction) : base(pointFrom, direction)
+	{
+		Shape = GenerateShape(pointFrom, direction);
+	}
+	
+	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction)
+	{
+		int length = GD.RandRange(6,8);
+		int width = GD.RandRange(2,3);
+		int height = 2;
+		if (GD.Randf() <= 0.25f) { height += 1; }
+		
+		List<Vector3I> workingShape = GenerateBaseShape(length,width,height);
+		
+		return workingShape;
 	}
 }
