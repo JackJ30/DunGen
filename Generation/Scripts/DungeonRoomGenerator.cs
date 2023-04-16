@@ -5,20 +5,20 @@ using System.Linq;
 
 public class DungeonRoomGenerator
 {
-	public RoomGeneration GetRoomGenerationFromDistribution(Vector3I pointFrom, Vector3I direction)
+	public RoomGeneration GetRoomGenerationFromDistribution(RoomCluster cluster, Vector3I pointFrom, Vector3I direction)
 	{
 		float random = GD.Randf();
 		
-		if (random < 0.05f) return new LargeRoomGeneration(pointFrom,direction);
-		if (random < 0.25f) return new LongRoomGeneration(pointFrom,direction);
-		if (random < 0.50f) return new TShapedRoomGeneration(pointFrom,direction);
-		else return new MediumRoomGeneration(pointFrom,direction);
+		if (random < 0.05f) return new LargeRoomGeneration(cluster,pointFrom,direction);
+		if (random < 0.25f) return new LongRoomGeneration(cluster,pointFrom,direction);
+		if (random < 0.50f) return new TShapedRoomGeneration(cluster,pointFrom,direction);
+		else return new MediumRoomGeneration(cluster,pointFrom,direction);
 	}
 	
 	public List<Room> GenerateRoomCluster(int numRooms)
 	{
 		RoomCluster cluster = new RoomCluster();
-		cluster.AddRoom(new Room(GetRoomGenerationFromDistribution(Vector3I.Zero, Vector3I.Back)));
+		cluster.AddRoom(new Room(GetRoomGenerationFromDistribution(cluster,Vector3I.Zero, Vector3I.Back)));
 		
 		for (int i = 0; i < numRooms - 1; i++)
 		{
@@ -46,7 +46,7 @@ public class DungeonRoomGenerator
 				RoomFace.ExposedNormal normalFrom = roomPlacementNormalsQueue.Dequeue().HeldNormal;
 				
 				if (normalFrom.Direction == Vector3I.Up || normalFrom.Direction == Vector3I.Down) continue;
-				generatedRoom = new Room(GetRoomGenerationFromDistribution(normalFrom.Position + normalFrom.Direction, normalFrom.Direction));
+				generatedRoom = new Room(GetRoomGenerationFromDistribution(cluster,normalFrom.Position + normalFrom.Direction, normalFrom.Direction));
 				if(cluster.AddRoom(generatedRoom)) break;
 			}
 		}
@@ -143,7 +143,11 @@ public class RoomFace
 	
 	public static List<RoomFace> GetFaces(List<Vector3I> shape)
 	{
-		List<ExposedNormal> exposedNormals = GetAllExposedNormals(shape);
+		return GetFaces(ExposedNormal.GetAllExposedNormals(shape));
+	}
+	
+	public static List<RoomFace> GetFaces(List<ExposedNormal> exposedNormals)
+	{
 		List<RoomFace> faces = new List<RoomFace>();
 		List<ExposedNormal> normalsLeft = new List<ExposedNormal>(exposedNormals);
 		
@@ -157,18 +161,6 @@ public class RoomFace
 		}
 		
 		return faces;
-	}
-	
-	public static List<ExposedNormal> GetAllExposedNormals(List<Vector3I> shape)
-	{
-		IEnumerable<ExposedNormal> exposedNormals = Enumerable.Empty<ExposedNormal>();
-		
-		foreach (Vector3I position in shape)
-		{
-			exposedNormals = exposedNormals.Concat(ExposedNormal.GetExposedNormalsAtPosition(position, shape));
-		}
-		
-		return exposedNormals.ToList();
 	}
 	
 	public class ExposedNormal
@@ -201,6 +193,18 @@ public class RoomFace
 		{
 			return all.Where(normal => ((Vector3)(normal.Position - input.Position)).LengthSquared() == 1f).ToArray();
 		}
+		
+		public static List<ExposedNormal> GetAllExposedNormals(List<Vector3I> shape)
+		{
+			IEnumerable<ExposedNormal> exposedNormals = Enumerable.Empty<ExposedNormal>();
+			
+			foreach (Vector3I position in shape)
+			{
+				exposedNormals = exposedNormals.Concat(ExposedNormal.GetExposedNormalsAtPosition(position, shape));
+			}
+			
+			return exposedNormals.ToList();
+		}
 	}
 }
 
@@ -216,13 +220,15 @@ public abstract class RoomGeneration
 	
 	protected Vector3I _origin;
 	protected Vector3I _direction;
+	protected RoomCluster _cluster;
 	
-	public RoomGeneration(Vector3I pointFrom, Vector3I direction)
+	public RoomGeneration(RoomCluster cluster, Vector3I pointFrom, Vector3I direction)
 	{
-		_shape = GenerateShape(pointFrom, direction);
-		
+		_cluster = cluster;
 		_origin = pointFrom;
 		_direction = direction;
+		
+		_shape = GenerateShape(pointFrom, direction);
 	}
 	
 	protected virtual List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction)
@@ -251,6 +257,12 @@ public abstract class RoomGeneration
 		return shape;
 	}
 	
+	protected void AddShapeRandomness()
+	{
+		RoomFace.ExposedNormal exposedNormals = RoomFace.ExposedNormal.GetAllExposedNormals(Shape);
+		
+	}
+	
 	protected List<Vector3I> GetPositionsInBounds(Vector3I pos1, Vector3I pos2) // pos1 < pos2 ALL ELEMENTS
 	{
 		List<Vector3I> positions = new List<Vector3I>();
@@ -275,13 +287,18 @@ public abstract class RoomGeneration
 		GlobalShape = GetGlobalShape();
 	}
 	
+	public Vector3I LocalToGlobal(Vector3I localPosition)
+	{
+		Vector3 directionConverted = (Vector3)_direction;
+		return _origin + (_direction * localPosition.Z) + (Vector3I.Up * localPosition.Y) + ((Vector3I)directionConverted.Rotated(Vector3.Up, (float)-Math.PI/2) * localPosition.X);
+	}
+	
 	public List<Vector3I> GetGlobalShape()
 	{
 		List<Vector3I> globalPositions = new List<Vector3I>();
-		Vector3 directionConverted = (Vector3)_direction;
 		foreach (Vector3I position in _shape)
 		{
-			globalPositions.Add(_origin + (_direction * position.Z) + (Vector3I.Up * position.Y) + ((Vector3I)directionConverted.Rotated(Vector3.Up, (float)-Math.PI/2) * position.X));
+			globalPositions.Add(LocalToGlobal(position));
 		}
 		return globalPositions;
 	}
@@ -289,7 +306,7 @@ public abstract class RoomGeneration
 
 public class MediumRoomGeneration : RoomGeneration
 {
-	public MediumRoomGeneration(Vector3I pointFrom, Vector3I direction) : base(pointFrom, direction)
+	public MediumRoomGeneration(RoomCluster cluster, Vector3I pointFrom, Vector3I direction) : base(cluster, pointFrom, direction)
 	{
 		Shape = GenerateShape(pointFrom, direction);
 	}
@@ -309,7 +326,7 @@ public class MediumRoomGeneration : RoomGeneration
 
 public class LongRoomGeneration : RoomGeneration
 {
-	public LongRoomGeneration(Vector3I pointFrom, Vector3I direction) : base(pointFrom, direction)
+	public LongRoomGeneration(RoomCluster cluster, Vector3I pointFrom, Vector3I direction) : base(cluster, pointFrom, direction)
 	{
 		Shape = GenerateShape(pointFrom, direction);
 	}
@@ -329,7 +346,7 @@ public class LongRoomGeneration : RoomGeneration
 
 public class LargeRoomGeneration : RoomGeneration
 {
-	public LargeRoomGeneration(Vector3I pointFrom, Vector3I direction) : base(pointFrom, direction)
+	public LargeRoomGeneration(RoomCluster cluster, Vector3I pointFrom, Vector3I direction) : base(cluster, pointFrom, direction)
 	{
 		Shape = GenerateShape(pointFrom, direction);
 	}
@@ -349,7 +366,7 @@ public class LargeRoomGeneration : RoomGeneration
 
 public class TShapedRoomGeneration : RoomGeneration
 {
-	public TShapedRoomGeneration(Vector3I pointFrom, Vector3I direction) : base(pointFrom, direction)
+	public TShapedRoomGeneration(RoomCluster cluster, Vector3I pointFrom, Vector3I direction) : base(cluster, pointFrom, direction)
 	{
 		Shape = GenerateShape(pointFrom, direction);
 	}
