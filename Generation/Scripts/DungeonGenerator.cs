@@ -91,7 +91,6 @@ public partial class DungeonGenerator : Node
 		
 		foreach (Room room in roomGenerator.GenerateRoomCluster(20))
 		{
-			GD.Print("test-1");
 			room.AssignCells(_grid);
 			_rooms.Add(room);
 		}

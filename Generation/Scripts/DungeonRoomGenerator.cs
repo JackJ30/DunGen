@@ -226,6 +226,9 @@ public abstract class RoomGeneration
 	public RoomGeneration(Vector3I pointFrom, Vector3I direction)
 	{
 		_shape = GenerateShape(pointFrom, direction);
+		
+		_origin = pointFrom;
+		_direction = direction;
 	}
 	
 	protected virtual List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction)
@@ -235,17 +238,10 @@ public abstract class RoomGeneration
 		return shape;
 	}
 	
-	protected Vector3I GenerateOrigin(Vector3I pointFrom, int length, int width, int height)
-	{
-		int widthOffset = GD.RandRange(-width+1,0); // This might be a plus/minus one issue
-		Vector3 directionConverted = (Vector3)_direction;
-		Vector3I origin = pointFrom + (widthOffset * (Vector3I)directionConverted.Rotated(Vector3.Up, (float)-Math.PI/2));
-		return origin;
-	}
-	
 	protected List<Vector3I> GenerateBaseShape(int length, int width, int height)
 	{
 		List<Vector3I> shape = new List<Vector3I>();
+		int widthOffset = GD.RandRange(-width+1,0);
 		
 		for (int l = 0; l < length; l++)
 		{
@@ -253,7 +249,7 @@ public abstract class RoomGeneration
 			{
 				for (int h = 0; h < height; h++)
 				{
-					shape.Add(new Vector3I(w,h,l));
+					shape.Add(new Vector3I(w+widthOffset,h,l));
 				}
 			}
 		}
@@ -293,9 +289,6 @@ public class MediumRoomGeneration : RoomGeneration
 		int height = 1;
 		if (GD.Randf() <= 0.4f) { height += 1; }
 		
-		_origin = GenerateOrigin(pointFrom,length,width,height);
-		_direction = direction;
-		
 		return GenerateBaseShape(length,width,height);
 	}
 }
@@ -314,9 +307,6 @@ public class LongRoomGeneration : RoomGeneration
 		int height = 1;
 		if (GD.Randf() <= 0.25f) { height += 1; }
 		
-		_origin = GenerateOrigin(pointFrom,length,width,height);
-		_direction = direction;
-		
 		return GenerateBaseShape(length,width,height);
 	}
 }
@@ -334,9 +324,6 @@ public class LargeRoomGeneration : RoomGeneration
 		int width = GD.RandRange(7,9);
 		int height = 2;
 		if (GD.Randf() <= 0.25f) { height += 1; }
-		
-		_origin = GenerateOrigin(pointFrom,length,width,height);
-		_direction = direction;
 		
 		return GenerateBaseShape(length,width,height);
 	}
