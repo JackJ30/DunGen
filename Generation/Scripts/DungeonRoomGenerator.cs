@@ -23,7 +23,7 @@ public class DungeonRoomGenerator
 		for (int i = 0; i < numRooms - 1; i++)
 		{
 			SimplePriorityQueue<RoomPlacementNormal, float> roomPlacementNormalsQueue = new SimplePriorityQueue<RoomPlacementNormal, float>();
-			List<RoomCluster.RoomFace> roomFaces = cluster.GetFaces(cluster.GetAllExposedNormals()).Where(face => face.Direction != Vector3I.Up || face.Direction != Vector3I.Up).ToList();
+			List<RoomFace> roomFaces = RoomFace.GetFaces(cluster.GetCompositeShape()).Where(face => face.Direction != Vector3I.Up || face.Direction != Vector3I.Up).ToList();
 			
 			int maxHeightDifference = roomFaces.Max(face => face.MaxHeight - face.MinHeight);
 			int desiredFloor = 0;
@@ -43,7 +43,7 @@ public class DungeonRoomGenerator
 			
 			while (roomPlacementNormalsQueue.Count > 0)
 			{
-				RoomCluster.ExposedNormal normalFrom = roomPlacementNormalsQueue.Dequeue().HeldNormal;
+				RoomFace.ExposedNormal normalFrom = roomPlacementNormalsQueue.Dequeue().HeldNormal;
 				
 				if (normalFrom.Direction == Vector3I.Up || normalFrom.Direction == Vector3I.Down) continue;
 				generatedRoom = new Room(GetRoomGenerationFromDistribution(normalFrom.Position + normalFrom.Direction, normalFrom.Direction));
@@ -67,10 +67,10 @@ public class DungeonRoomGenerator
 	
 	public struct RoomPlacementNormal
 	{
-		public RoomCluster.RoomFace HeldFace {get;private set;}
-		public RoomCluster.ExposedNormal HeldNormal {get;private set;}
+		public RoomFace HeldFace {get;private set;}
+		public RoomFace.ExposedNormal HeldNormal {get;private set;}
 		
-		public RoomPlacementNormal(RoomCluster.RoomFace heldFace, RoomCluster.ExposedNormal heldNormal)
+		public RoomPlacementNormal(RoomFace heldFace, RoomFace.ExposedNormal heldNormal)
 		{
 			HeldFace = heldFace;
 			HeldNormal = heldNormal;
@@ -110,37 +110,7 @@ public class RoomCluster
 		}
 	}
 	
-	public List<ExposedNormal> GetAllExposedNormals()
-	{
-		IEnumerable<ExposedNormal> exposedNormals = Enumerable.Empty<ExposedNormal>();
-		List<Vector3I> compositeShape = GetCompositeShape();
-		
-		foreach (Vector3I position in compositeShape)
-		{
-			exposedNormals = exposedNormals.Concat(ExposedNormal.GetExposedNormalsAtPosition(position, compositeShape));
-		}
-		
-		return exposedNormals.ToList();
-	}
-	
-	public List<RoomFace> GetFaces(List<ExposedNormal> exposedNormals) // May Not be working
-	{
-		List<RoomFace> faces = new List<RoomFace>();
-		List<ExposedNormal> normalsLeft = new List<ExposedNormal>(exposedNormals);
-		
-		while (normalsLeft.Any())
-		{
-			ExposedNormal start = normalsLeft[0]; 
-			List<ExposedNormal> normalsInFace = new FloodFill<ExposedNormal>(normalsLeft, start, GetNeighbors, normal => normal.Direction == start.Direction).GetOutput();
-			normalsLeft = normalsLeft.Except(normalsInFace).ToList();
-			
-			faces.Add(new RoomFace(normalsInFace));
-		}
-		
-		return faces;
-	}
-	
-	List<Vector3I> GetCompositeShape()
+	public List<Vector3I> GetCompositeShape()
 	{
 		IEnumerable<Vector3I> compositeShape = Enumerable.Empty<Vector3I>();
 		
@@ -151,10 +121,54 @@ public class RoomCluster
 		
 		return compositeShape.ToList();
 	}
+}
+
+public class RoomFace
+{
+	public List<ExposedNormal> ExposedNormals { get; private set; }
 	
-	public ExposedNormal[] GetNeighbors(ExposedNormal input, List<ExposedNormal> all)
+	public int MinHeight { get; private set; }
+	public int MaxHeight { get; private set; }
+	public Vector3I Direction { get; private set; }
+	
+	public RoomFace(List<ExposedNormal> exposedNormals)
 	{
-		return all.Where(normal => ((Vector3)(normal.Position - input.Position)).LengthSquared() == 1f).ToArray();
+		ExposedNormals = exposedNormals;
+		
+		if (exposedNormals.Any()) Direction = exposedNormals.First().Direction;
+		
+		MinHeight = ExposedNormals.Min(x => x.Position.Y);
+		MaxHeight = ExposedNormals.Max(x => x.Position.Y);
+	}
+	
+	public static List<RoomFace> GetFaces(List<Vector3I> shape)
+	{
+		List<ExposedNormal> exposedNormals = GetAllExposedNormals(shape);
+		List<RoomFace> faces = new List<RoomFace>();
+		List<ExposedNormal> normalsLeft = new List<ExposedNormal>(exposedNormals);
+		
+		while (normalsLeft.Any())
+		{
+			ExposedNormal start = normalsLeft[0]; 
+			List<ExposedNormal> normalsInFace = new FloodFill<ExposedNormal>(normalsLeft, start, ExposedNormal.GetNeighbors, normal => normal.Direction == start.Direction).GetOutput();
+			normalsLeft = normalsLeft.Except(normalsInFace).ToList();
+			
+			faces.Add(new RoomFace(normalsInFace));
+		}
+		
+		return faces;
+	}
+	
+	public static List<ExposedNormal> GetAllExposedNormals(List<Vector3I> shape)
+	{
+		IEnumerable<ExposedNormal> exposedNormals = Enumerable.Empty<ExposedNormal>();
+		
+		foreach (Vector3I position in shape)
+		{
+			exposedNormals = exposedNormals.Concat(ExposedNormal.GetExposedNormalsAtPosition(position, shape));
+		}
+		
+		return exposedNormals.ToList();
 	}
 	
 	public class ExposedNormal
@@ -182,33 +196,12 @@ public class RoomCluster
 			
 			return normals;
 		}
-	}
-
-	public class RoomFace
-	{
-		public List<ExposedNormal> ExposedNormals { get; private set; }
 		
-		public int MinHeight { get; private set; }
-		public int MaxHeight { get; private set; }
-		public Vector3I Direction { get; private set; }
-		
-		public RoomFace(List<ExposedNormal> exposedNormals)
+		public static ExposedNormal[] GetNeighbors(ExposedNormal input, List<ExposedNormal> all)
 		{
-			ExposedNormals = exposedNormals;
-			
-			if (exposedNormals.Any()) Direction = exposedNormals.First().Direction;
-			
-			MinHeight = ExposedNormals.Min(x => x.Position.Y);
-			MaxHeight = ExposedNormals.Max(x => x.Position.Y);
+			return all.Where(normal => ((Vector3)(normal.Position - input.Position)).LengthSquared() == 1f).ToArray();
 		}
 	}
-	
-	/*
-		_faces = GetFaces();
-				
-		_exposedNormals.Clear();
-		
-	*/
 }
 
 public abstract class RoomGeneration
