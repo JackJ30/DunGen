@@ -89,7 +89,7 @@ public partial class DungeonGenerator : Node
 			numTries = 0;
 		}*/
 		
-		foreach (Room room in roomGenerator.GenerateRoomCluster(20))
+		foreach (Room room in roomGenerator.GenerateRoomCluster(10))
 		{
 			room.AssignCells(_grid);
 			_rooms.Add(room);

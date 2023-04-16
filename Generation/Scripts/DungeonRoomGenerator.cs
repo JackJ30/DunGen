@@ -10,7 +10,8 @@ public class DungeonRoomGenerator
 		float random = GD.Randf();
 		
 		if (random < 0.05f) return new LargeRoomGeneration(pointFrom,direction);
-		if (random < 0.4f) return new LongRoomGeneration(pointFrom,direction);
+		if (random < 0.25f) return new LongRoomGeneration(pointFrom,direction);
+		if (random < 0.50f) return new TShapedRoomGeneration(pointFrom,direction);
 		else return new MediumRoomGeneration(pointFrom,direction);
 	}
 	
@@ -364,10 +365,22 @@ public class TShapedRoomGeneration : RoomGeneration
 	{
 		int length = GD.RandRange(6,8);
 		int width = GD.RandRange(2,3);
-		int height = 2;
+		int height = 1;
 		if (GD.Randf() <= 0.25f) { height += 1; }
 		
-		List<Vector3I> workingShape = GenerateBaseShape(length,width,height);
+		int widthOffset = GD.RandRange(-width+1,0);
+		List<Vector3I> workingShape = GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
+		
+		int centerX = widthOffset + (width/2);
+		int topWidth = GD.RandRange(6,8);
+		int topLength = GD.RandRange(2,3);
+		int topHeight = height;
+		int topLengthOffset = GD.RandRange(length-3,length)-topLength;
+		
+		Vector3I topPos1 = new Vector3I(centerX-(topWidth/2),0,topLengthOffset);
+		Vector3I topPos2 = new Vector3I(centerX+(topWidth/2),topHeight,topLengthOffset+topLength);
+		
+		workingShape = workingShape.Concat(GetPositionsInBounds(topPos1,topPos2)).Distinct().ToList();
 		
 		return workingShape;
 	}
