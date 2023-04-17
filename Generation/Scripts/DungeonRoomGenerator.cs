@@ -129,6 +129,10 @@ public class RoomFace
 	
 	public int MinHeight { get; private set; }
 	public int MaxHeight { get; private set; }
+	public int Width { get; private set; }
+	public int Height { get; private set; }
+	public int MinWidth { get; private set; }
+	public int MaxWidth { get; private set; }
 	public Vector3I Direction { get; private set; }
 	
 	public RoomFace(List<ExposedNormal> exposedNormals)
@@ -139,6 +143,23 @@ public class RoomFace
 		
 		MinHeight = ExposedNormals.Min(x => x.Position.Y);
 		MaxHeight = ExposedNormals.Max(x => x.Position.Y);
+		Height = Math.Abs(MaxHeight - MinHeight) + 1;
+		if (Math.Abs(Direction.X) != 0)
+		{
+			MinWidth = ExposedNormals.Min(x => x.Position.Z);
+			MaxWidth = ExposedNormals.Max(x => x.Position.Z);
+			Width = Math.Abs(MaxWidth - MinWidth) + 1;
+		}
+		else if (Math.Abs(Direction.Z) != 0)
+		{
+			MinWidth = ExposedNormals.Min(x => x.Position.X);
+			MaxWidth = ExposedNormals.Max(x => x.Position.X);
+			Width = Math.Abs(MaxWidth - MinWidth) + 1;
+		}
+		else
+		{
+			Width = 1;
+		}
 	}
 	
 	public static List<RoomFace> GetFaces(List<Vector3I> shape)
@@ -257,10 +278,74 @@ public abstract class RoomGeneration
 		return shape;
 	}
 	
-	protected void AddShapeRandomness()
+	protected List<Vector3I> AddShapeRandomness(List<Vector3I> shape, int extrusionLength)
 	{
-		RoomFace.ExposedNormal exposedNormals = RoomFace.ExposedNormal.GetAllExposedNormals(Shape);
+		List<RoomFace.ExposedNormal> exposedNormals = RoomFace.ExposedNormal.GetAllExposedNormals(shape);
+		List<Vector3I> clusterShape = _cluster.GetCompositeShape();
+		// Remove normals pointing to other rooms
+		exposedNormals = exposedNormals.Where(normal => !clusterShape.Contains(LocalToGlobal(normal.Position + normal.Direction))).ToList();
+		List<RoomFace> faces = RoomFace.GetFaces(exposedNormals);
+		// Remove 1 width forces and sort by width (descending)
+		faces = faces.Where(face => face.Width != 1).OrderBy(face => -face.Width).ToList();
+		// Prioritizes higher width
+		RoomFace selectedFace = faces[(int)Math.Floor(GD.Randfn(0.0,1.0) * faces.Count())];
 		
+		bool sliceDirection = GD.Randf() < 0.5f; // true - horizontal, false - vertical
+		if (selectedFace.Height == 1) sliceDirection = true; // Don't slice one tall face vertically
+		
+		List<Vector3I> selectedPositions;
+		Func<Vector3I,Boolean> condition = position => true;
+		if (sliceDirection) // horizontal
+		{
+			int sliceWidth = GD.RandRange(0,selectedFace.Width-1);
+			if (selectedFace.Direction.X != 0)
+			{
+				if (GD.Randf() < 0.5f)
+				{
+					condition = position => position.Z >= selectedFace.MinWidth + sliceWidth;
+				}
+				else
+				{
+					condition = position => position.Z <= selectedFace.MaxWidth - sliceWidth;
+				}
+			}
+			else if (selectedFace.Direction.Z != 0)
+			{
+				if (GD.Randf() < 0.5f)
+				{
+					condition = position => position.X >= selectedFace.MinWidth + sliceWidth;
+				}
+				else
+				{
+					condition = position => position.X <= selectedFace.MaxWidth - sliceWidth;
+				}
+			}
+		}
+		else // vertical
+		{
+			int sliceWidth = GD.RandRange(0,selectedFace.Height-1);
+			if (GD.Randf() < 0.5f) // Slice from top or bottom
+			{ // bottom
+				condition = position => position.Y >= selectedFace.MinHeight + sliceWidth;
+			}
+			else
+			{ // top
+				condition = position => position.Y <= selectedFace.MaxHeight - sliceWidth;
+			}
+		}
+		
+		selectedPositions = selectedFace.ExposedNormals.Select(normal => normal.Position).Where(condition).ToList();
+		
+		List<Vector3I> extrusionPositions = new List<Vector3I>();
+		for (int i = 1; i < extrusionLength + 1; i++)
+		{
+			foreach (Vector3I position in selectedPositions)
+			{
+				extrusionPositions.Add(position + (selectedFace.Direction * i));
+			}
+		}
+		
+		return extrusionPositions;
 	}
 	
 	protected List<Vector3I> GetPositionsInBounds(Vector3I pos1, Vector3I pos2) // pos1 < pos2 ALL ELEMENTS
