@@ -288,7 +288,12 @@ public abstract class RoomGeneration
 		// Remove 1 width forces and sort by width (descending)
 		faces = faces.Where(face => face.Width != 1).OrderBy(face => -face.Width).ToList();
 		// Prioritizes higher width
-		RoomFace selectedFace = faces[(int)Math.Floor(GD.Randfn(0.0,1.0) * faces.Count())];
+		double rand = Math.Min(Math.Abs(GD.Randfn(0.0,1.0))/3.0,.999999); // Approx normal dist from 0-1
+		int faceIndex = (int)Math.Floor(rand * faces.Count());
+		GD.Print(faceIndex);
+		GD.Print(faces.Count());
+		GD.Print(rand);
+		RoomFace selectedFace = faces[faceIndex];
 		
 		bool sliceDirection = GD.Randf() < 0.5f; // true - horizontal, false - vertical
 		if (selectedFace.Height == 1) sliceDirection = true; // Don't slice one tall face vertically
@@ -405,7 +410,10 @@ public class MediumRoomGeneration : RoomGeneration
 		
 		int widthOffset = GD.RandRange(-width+1,0);
 		
-		return GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
+		IEnumerable<Vector3I> workingShape = GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
+		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		return workingShape.ToList();
 	}
 }
 
@@ -425,7 +433,10 @@ public class LongRoomGeneration : RoomGeneration
 		
 		int widthOffset = GD.RandRange(-width+1,0);
 		
-		return GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
+		IEnumerable<Vector3I> workingShape = GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
+		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		return workingShape.ToList();
 	}
 }
 
@@ -445,7 +456,10 @@ public class LargeRoomGeneration : RoomGeneration
 		
 		int widthOffset = GD.RandRange(-width+1,0);
 		
-		return GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
+		IEnumerable<Vector3I> workingShape = GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
+		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		return workingShape.ToList();
 	}
 }
 
@@ -476,6 +490,8 @@ public class TShapedRoomGeneration : RoomGeneration
 		Vector3I topPos2 = new Vector3I(centerX+(topWidth/2),topHeight,topLengthOffset+topLength);
 		
 		workingShape = workingShape.Concat(GetPositionsInBounds(topPos1,topPos2)).Distinct().ToList();
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape,2)).ToList();
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape,2)).ToList();
 		
 		return workingShape;
 	}
