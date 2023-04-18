@@ -288,13 +288,12 @@ public abstract class RoomGeneration
 		// Remove 1 width forces and sort by width (descending)
 		faces = faces.Where(face => face.Width != 1).OrderBy(face => -face.Width).ToList();
 		// Prioritizes higher width
-		double rand = Math.Min(Math.Abs(GD.Randfn(0.0,1.0))/3.0,.999999); // Approx normal dist from 0-1
+		double rand = Math.Min(Math.Abs(GD.Randfn(0.0,1.0))/6.0,.999999); // Approx normal dist from 0-1
 		int faceIndex = (int)Math.Floor(rand * faces.Count());
 		GD.Print(faceIndex);
 		GD.Print(faces.Count());
-		GD.Print(rand);
 		RoomFace selectedFace = faces[faceIndex];
-		
+
 		bool sliceDirection = GD.Randf() < 0.5f; // true - horizontal, false - vertical
 		if (selectedFace.Height == 1) sliceDirection = true; // Don't slice one tall face vertically
 		
@@ -411,8 +410,8 @@ public class MediumRoomGeneration : RoomGeneration
 		int widthOffset = GD.RandRange(-width+1,0);
 		
 		IEnumerable<Vector3I> workingShape = GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
-		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
-		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
 		return workingShape.ToList();
 	}
 }
@@ -434,8 +433,8 @@ public class LongRoomGeneration : RoomGeneration
 		int widthOffset = GD.RandRange(-width+1,0);
 		
 		IEnumerable<Vector3I> workingShape = GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
-		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
-		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
 		return workingShape.ToList();
 	}
 }
@@ -457,8 +456,8 @@ public class LargeRoomGeneration : RoomGeneration
 		int widthOffset = GD.RandRange(-width+1,0);
 		
 		IEnumerable<Vector3I> workingShape = GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
-		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
-		workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
 		return workingShape.ToList();
 	}
 }
