@@ -5,20 +5,20 @@ using System.Linq;
 
 public class DungeonRoomGenerator
 {
-	public RoomGeneration GetRoomGenerationFromDistribution(RoomCluster cluster, Vector3I pointFrom, Vector3I direction)
+	public RoomGeneration GetRoomGenerationFromDistribution(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
 	{
 		float random = GD.Randf();
 		
-		if (random < 0.05f) return new LargeRoomGeneration(cluster,pointFrom,direction);
-		if (random < 0.25f) return new LongRoomGeneration(cluster,pointFrom,direction);
-		if (random < 0.50f) return new TShapedRoomGeneration(cluster,pointFrom,direction);
-		else return new MediumRoomGeneration(cluster,pointFrom,direction);
+		if (random < 0.05f) return new LargeRoomGeneration(pointFrom,direction,context);
+		if (random < 0.25f) return new LongRoomGeneration(pointFrom,direction,context);
+		if (random < 0.50f) return new TShapedRoomGeneration(pointFrom,direction,context);
+		else return new MediumRoomGeneration(pointFrom,direction,context);
 	}
 	
-	public List<Room> GenerateRoomCluster(int numRooms)
+	public RoomCluster GenerateRoomCluster(int numRooms)
 	{
 		RoomCluster cluster = new RoomCluster();
-		cluster.AddRoom(new Room(GetRoomGenerationFromDistribution(cluster,Vector3I.Zero, Vector3I.Back)));
+		cluster.AddRoom(new Room(GetRoomGenerationFromDistribution(Vector3I.Zero, Vector3I.Back))); // No context needed, as this is the first room
 		
 		for (int i = 0; i < numRooms - 1; i++)
 		{
@@ -46,13 +46,17 @@ public class DungeonRoomGenerator
 				RoomFace.ExposedNormal normalFrom = roomPlacementNormalsQueue.Dequeue().HeldNormal;
 				
 				if (normalFrom.Direction == Vector3I.Up || normalFrom.Direction == Vector3I.Down) continue;
-				generatedRoom = new Room(GetRoomGenerationFromDistribution(cluster,normalFrom.Position + normalFrom.Direction, normalFrom.Direction));
-				if(cluster.AddRoom(generatedRoom)) break;
+				generatedRoom = new Room(GetRoomGenerationFromDistribution(normalFrom.Position + normalFrom.Direction, normalFrom.Direction,cluster.GetCompositeShape()));
+				if (cluster.AddRoom(generatedRoom))
+				{
+					cluster.AddDoor(new LinkedVector3I(normalFrom.Position,normalFrom.Position + normalFrom.Direction));
+					break;
+				}
 			}
 		}
 		
 		cluster.Abs();
-		return cluster.Rooms;
+		return cluster;
 	}
 	
 	float NormalPriorityFunction(RoomPlacementNormal roomPlacementNormal, int desiredFloor)
@@ -81,10 +85,12 @@ public class DungeonRoomGenerator
 public class RoomCluster
 {
 	public List<Room> Rooms { get; private set; }
+	public List<LinkedVector3I> Doors { get; private set; }
 	
 	public RoomCluster()
 	{
 		Rooms = new List<Room>();
+		Doors = new List<LinkedVector3I>();
 	}
 	
 	public bool AddRoom(Room addend)
@@ -93,6 +99,24 @@ public class RoomCluster
 		
 		Rooms.Add(addend);
 		return true;
+	}
+
+	public void AddDoor(LinkedVector3I door)
+	{
+		Doors.Add(door);
+	}
+
+	public void AssignToGrid(Grid3D<Cell> grid)
+	{
+		foreach (Room room in Rooms)
+		{
+			room.AssignCells(grid);
+		}
+
+		foreach (LinkedVector3I door in Doors)
+		{
+			Cell.Connect(grid[door.A],grid[door.B]);
+		}
 	}
 	
 	public Vector3I Abs() 
@@ -107,6 +131,12 @@ public class RoomCluster
 		foreach (Room room in Rooms)
 		{
 			room.RoomGeneration.Translate(amount);
+		}
+
+		foreach (LinkedVector3I door in Doors)
+		{
+			door.A += amount;
+			door.B += amount;
 		}
 	}
 	
@@ -241,18 +271,16 @@ public abstract class RoomGeneration
 	
 	protected Vector3I _origin;
 	protected Vector3I _direction;
-	protected RoomCluster _cluster;
 	
-	public RoomGeneration(RoomCluster cluster, Vector3I pointFrom, Vector3I direction)
+	public RoomGeneration(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
 	{
-		_cluster = cluster;
 		_origin = pointFrom;
 		_direction = direction;
 		
 		_shape = GenerateShape(pointFrom, direction);
 	}
 	
-	protected virtual List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction)
+	protected virtual List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
 	{
 		List<Vector3I> shape = new List<Vector3I>();
 		
@@ -278,20 +306,17 @@ public abstract class RoomGeneration
 		return shape;
 	}
 	
-	protected List<Vector3I> AddShapeRandomness(List<Vector3I> shape, int extrusionLength)
+	protected List<Vector3I> AddShapeRandomness(List<Vector3I> shape, int extrusionLength, List<Vector3I> context = null)
 	{
 		List<RoomFace.ExposedNormal> exposedNormals = RoomFace.ExposedNormal.GetAllExposedNormals(shape);
-		List<Vector3I> clusterShape = _cluster.GetCompositeShape();
-		// Remove normals pointing to other rooms
-		exposedNormals = exposedNormals.Where(normal => !clusterShape.Contains(LocalToGlobal(normal.Position + normal.Direction))).ToList();
+		// Remove normals pointing to other rooms, if context is provided (increases chances that the algorithm will not fuck up and have to try again)
+		if(context != null) exposedNormals = exposedNormals.Where(normal => !context.Contains(LocalToGlobal(normal.Position + normal.Direction))).ToList();
 		List<RoomFace> faces = RoomFace.GetFaces(exposedNormals);
 		// Remove 1 width forces and sort by width (descending)
 		faces = faces.Where(face => face.Width != 1).OrderBy(face => -face.Width).ToList();
 		// Prioritizes higher width
 		double rand = Math.Min(Math.Abs(GD.Randfn(0.0,1.0))/6.0,.999999); // Approx normal dist from 0-1
 		int faceIndex = (int)Math.Floor(rand * faces.Count());
-		GD.Print(faceIndex);
-		GD.Print(faces.Count());
 		RoomFace selectedFace = faces[faceIndex];
 
 		bool sliceDirection = GD.Randf() < 0.5f; // true - horizontal, false - vertical
@@ -395,12 +420,12 @@ public abstract class RoomGeneration
 
 public class MediumRoomGeneration : RoomGeneration
 {
-	public MediumRoomGeneration(RoomCluster cluster, Vector3I pointFrom, Vector3I direction) : base(cluster, pointFrom, direction)
+	public MediumRoomGeneration(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
 	}
 	
-	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction)
+	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
 	{
 		int length = GD.RandRange(3,6);
 		int width = GD.RandRange(3,6);
@@ -410,20 +435,20 @@ public class MediumRoomGeneration : RoomGeneration
 		int widthOffset = GD.RandRange(-width+1,0);
 		
 		IEnumerable<Vector3I> workingShape = GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
-		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
-		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2, context));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2, context));
 		return workingShape.ToList();
 	}
 }
 
 public class LongRoomGeneration : RoomGeneration
 {
-	public LongRoomGeneration(RoomCluster cluster, Vector3I pointFrom, Vector3I direction) : base(cluster, pointFrom, direction)
+	public LongRoomGeneration(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
 	}
 	
-	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction)
+	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
 	{
 		int length = GD.RandRange(6,8);
 		int width = GD.RandRange(2,3);
@@ -433,20 +458,20 @@ public class LongRoomGeneration : RoomGeneration
 		int widthOffset = GD.RandRange(-width+1,0);
 		
 		IEnumerable<Vector3I> workingShape = GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
-		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
-		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2, context));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2, context));
 		return workingShape.ToList();
 	}
 }
 
 public class LargeRoomGeneration : RoomGeneration
 {
-	public LargeRoomGeneration(RoomCluster cluster, Vector3I pointFrom, Vector3I direction) : base(cluster, pointFrom, direction)
+	public LargeRoomGeneration(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
 	}
 	
-	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction)
+	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
 	{
 		int length = GD.RandRange(7,9);
 		int width = GD.RandRange(7,9);
@@ -456,20 +481,20 @@ public class LargeRoomGeneration : RoomGeneration
 		int widthOffset = GD.RandRange(-width+1,0);
 		
 		IEnumerable<Vector3I> workingShape = GetPositionsInBounds(new Vector3I(0+widthOffset,0,0),new Vector3I(width+widthOffset,height,length));
-		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
-		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2, context));
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2, context));
 		return workingShape.ToList();
 	}
 }
 
 public class TShapedRoomGeneration : RoomGeneration
 {
-	public TShapedRoomGeneration(RoomCluster cluster, Vector3I pointFrom, Vector3I direction) : base(cluster, pointFrom, direction)
+	public TShapedRoomGeneration(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
 	}
 	
-	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction)
+	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
 	{
 		int length = GD.RandRange(6,8);
 		int width = GD.RandRange(2,3);
@@ -489,8 +514,8 @@ public class TShapedRoomGeneration : RoomGeneration
 		Vector3I topPos2 = new Vector3I(centerX+(topWidth/2),topHeight,topLengthOffset+topLength);
 		
 		workingShape = workingShape.Concat(GetPositionsInBounds(topPos1,topPos2)).Distinct().ToList();
-		workingShape = workingShape.Concat(AddShapeRandomness(workingShape,2)).ToList();
-		workingShape = workingShape.Concat(AddShapeRandomness(workingShape,2)).ToList();
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2, context)).ToList();
+		workingShape = workingShape.Concat(AddShapeRandomness(workingShape.ToList(),2, context)).ToList();
 		
 		return workingShape;
 	}

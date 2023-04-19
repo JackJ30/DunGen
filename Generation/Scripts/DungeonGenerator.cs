@@ -88,12 +88,10 @@ public partial class DungeonGenerator : Node
 				roomsSpawned += 1;
 			numTries = 0;
 		}*/
+
+		RoomCluster cluster = roomGenerator.GenerateRoomCluster(10);
+		cluster.AssignToGrid(_grid);
 		
-		foreach (Room room in roomGenerator.GenerateRoomCluster(10))
-		{
-			room.AssignCells(_grid);
-			_rooms.Add(room);
-		}
 	}
 	
 	private void Triangulate()
@@ -156,10 +154,10 @@ public partial class DungeonGenerator : Node
 	
 	void DisplayCells()
 	{
-		SerializedDungeon serializedDungeon = new SerializedDungeon(_grid);
-		String dungeon = serializedDungeon.Serialize();
+		//SerializedDungeon serializedDungeon = new SerializedDungeon(_grid);
+		//String dungeon = serializedDungeon.Serialize();
 		
-		_grid = serializedDungeon.DeSerialize(dungeon);
+		//_grid = serializedDungeon.DeSerialize(dungeon);
 		
 		for (int x = 0; x < Size.X; x++) {
 			for (int y = 0; y < Size.Y; y++) {
@@ -373,8 +371,8 @@ public class Room : DungeonLevelSegment
 		
 		foreach (Vector3I position in RoomGeneration.GlobalShape)
 		{
-			if (!grid.InBounds(position + new Vector3I(0,-1,0))) result.Add(position);
-			else if (!grid[position + new Vector3I(0,-1,0)].Segments.Contains(this)) result.Add(position);
+			if (!grid.InBounds(position + new Vector3I(0,-1,0))) result.Add(position); // If out of bounds
+			else if (!grid[position + new Vector3I(0,-1,0)].Segments.Contains(this)) result.Add(position); // If segment below is not this room
 		}
 		
 		return result.ToArray();
@@ -424,9 +422,9 @@ public class Hallway : PathfindingLevelSegment
 	public override float CalculateCost(Vector3I targetPos, Vector3I previousPos, Grid3D<Cell> grid)
 	{
 		float cost = ((Vector3)End).DistanceTo((Vector3)targetPos);    //heuristic
-		if (grid[End].Segments.Any(i => i.GetType() == typeof(Stairway))) {
+		if (grid[End].HasSegment<Stairway>()) {
 			return -1f;
-		} else if (grid[End].Segments.Any(i => i.GetType() == typeof(Room))) {
+		} else if (grid[End].HasSegment<Room>()) {
 			cost += 5f;
 		} else if (grid[End].IsEmpty()) {
 			cost += 1f;
@@ -436,7 +434,7 @@ public class Hallway : PathfindingLevelSegment
 	
 	public override void InterpretPathfindingResult(Grid3D<Cell> grid, List<PathfindingLevelSegment> results, int index)
 	{
-		if (grid[End].Segments.Any(i => i.GetType() == typeof(Room))) return;
+		if (grid[End].HasSegment<Room>()) return;
 		
 		base.InterpretPathfindingResult(grid, results, index);
 		
@@ -444,10 +442,9 @@ public class Hallway : PathfindingLevelSegment
 		{
 			foreach (Vector3I position in results[index - 1].GetOccupiedPositions())
 			{
-				if(grid[position].Segments.Any(i => i.GetType() == typeof(Room)))
+				if(grid[position].HasSegment<Room>())
 				{
-					grid[End].Connections.Add(position);
-					grid[position].Connections.Add(End);
+					Cell.Connect(grid[End],grid[position]);
 				}
 			}
 		}
@@ -456,10 +453,9 @@ public class Hallway : PathfindingLevelSegment
 		{
 			foreach (Vector3I position in results[index + 1].GetOccupiedPositions())
 			{
-				if(grid[position].Segments.Any(i => i.GetType() == typeof(Room)))
+				if(grid[position].HasSegment<Room>())
 				{
-					grid[End].Connections.Add(position);
-					grid[position].Connections.Add(End);
+					Cell.Connect(grid[End],grid[position]);
 				}
 			}
 		}
@@ -471,7 +467,7 @@ public class Hallway : PathfindingLevelSegment
 		if (cellTo.IsEmpty()) return false;
 		if (delta.Y != 0) return false;
 		
-		return cellTo.Segments.Any(i => i.GetType() == typeof(Hallway));
+		return cellTo.HasSegment<Hallway>();
 	}
 	
 	public override Vector3I[] GetOccupiedPositions()
@@ -503,8 +499,8 @@ public class Stairway : PathfindingLevelSegment
 	
 	public override float CalculateCost(Vector3I targetPos, Vector3I previousPos, Grid3D<Cell> grid)
 	{
-		if ((!grid[Start].IsEmpty() && !grid[Start].Segments.Any(i => i.GetType() == typeof(Hallway)))
-				|| (!grid[End].IsEmpty() && !grid[End].Segments.Any(i => i.GetType() == typeof(Hallway)))) return -1f;
+		if ((!grid[Start].IsEmpty() && !grid[Start].HasSegment<Hallway>())
+				|| (!grid[End].IsEmpty() && !grid[End].HasSegment<Hallway>())) return -1f;
 
 		List<Vector3I> positions = GetOccupiedPositions().Concat(GetAdditionalRequiredEmptyPositions()).ToList();
 		positions.Add(previousPos);
@@ -529,10 +525,8 @@ public class Stairway : PathfindingLevelSegment
 	{
 		base.InterpretPathfindingResult(grid, results, index);
 		
-		grid[End].Connections.Add(End + (Direction * new Vector3I(1, 0, 1)));
-		grid[End + (Direction * new Vector3I(1, 0, 1))].Connections.Add(End);
-		grid[Start].Connections.Add(Start + (-Direction * new Vector3I(1, 0, 1)));
-		grid[Start + (-Direction * new Vector3I(1, 0, 1))].Connections.Add(Start);
+		Cell.Connect(grid[End],grid[End + (Direction * new Vector3I(1, 0, 1))]);
+		Cell.Connect(grid[Start],grid[Start + (-Direction * new Vector3I(1, 0, 1))]);
 	}
 	
 	public override bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
@@ -540,9 +534,9 @@ public class Stairway : PathfindingLevelSegment
 		if (cellFrom.HasConnection(cellTo)) return true;
 		if (cellTo.IsEmpty()) return false;
 		
-		foreach (PathfindingLevelSegment segmentTo in cellTo.Segments.FindAll(i => i.GetType() == typeof(Stairway)))
+		foreach (PathfindingLevelSegment segmentTo in cellTo.GetSegments<Stairway>())
 		{
-			foreach (PathfindingLevelSegment segmentFrom in cellFrom.Segments.FindAll(i => i.GetType() == typeof(Stairway)))
+			foreach (PathfindingLevelSegment segmentFrom in cellFrom.GetSegments<Stairway>())
 			{
 				if ((segmentTo.Start == segmentFrom.Start + delta && segmentTo.End == segmentFrom.End + delta) || 
 					(segmentTo.Start == segmentFrom.End + delta && segmentTo.End == segmentFrom.Start + delta))
@@ -605,7 +599,7 @@ public class Cell
 	[DataMember]
 	public List<DungeonLevelSegment> Segments { get; private set; }
 	[DataMember]
-	public List<Vector3I> Connections { get; private set; }
+	public List<LinkedVector3I> Connections { get; private set; }
 	[DataMember]
 	public Vector3I Position { get; private set; }
 	
@@ -614,7 +608,7 @@ public class Cell
 		Position = position;
 		
 		Segments = new List<DungeonLevelSegment>();
-		Connections = new List<Vector3I>();
+		Connections = new List<LinkedVector3I>();
 	}
 	
 	public Cell(Vector3I position, DungeonLevelSegment segment)
@@ -622,9 +616,43 @@ public class Cell
 		Position = position;
 		
 		Segments = new List<DungeonLevelSegment>() {segment};
-		Connections = new List<Vector3I>();
+		Connections = new List<LinkedVector3I>();
 	}
-	
+
+	#region Segment Helpers
+
+	// Type
+	public IEnumerable<DungeonLevelSegment> GetSegments<T>() where T : DungeonLevelSegment
+	{
+		return Segments.OfType<T>();
+	}
+	public bool HasSegment<T>() where T : DungeonLevelSegment
+	{
+		return GetSegments<T>().Any();
+	}
+
+	// Condition
+	public IEnumerable<DungeonLevelSegment> GetSegments(Func<DungeonLevelSegment, Boolean> condition)
+	{
+		return Segments.Where(condition);
+	}
+	public bool HasSegment(Func<DungeonLevelSegment, Boolean> condition)
+	{
+		return GetSegments(condition).Any();
+	}
+
+	// Type and Condition
+	public IEnumerable<DungeonLevelSegment> GetSegments<T>(Func<DungeonLevelSegment, Boolean> condition) where T : DungeonLevelSegment
+	{
+		return Segments.Where(condition).OfType<T>();
+	}
+	public bool HasSegment<T>(Func<DungeonLevelSegment, Boolean> condition) where T : DungeonLevelSegment
+	{
+		return GetSegments<T>(condition).Any();
+	}
+
+	#endregion
+
 	public bool IsEmpty()
 	{
 		return Segments.Count == 0;
@@ -632,6 +660,17 @@ public class Cell
 	
 	public bool HasConnection(Cell other)
 	{
-		return Connections.Contains(other.Position);
+		foreach (LinkedVector3I connection in Connections)
+		{
+			if (connection.Contains(other.Position)) return true;
+		}
+		return false;
+	}
+
+	public static void Connect(Cell a, Cell b)
+	{
+		LinkedVector3I connection = new LinkedVector3I(a.Position, b.Position);
+		b.Connections.Add(connection);
+		a.Connections.Add(connection);
 	}
 }

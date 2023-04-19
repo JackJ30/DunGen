@@ -85,3 +85,21 @@ public class FloodFill<T>
 		return _final;
 	}
 }
+
+
+public class LinkedVector3I
+{
+	public Vector3I A;
+	public Vector3I B;
+
+	public LinkedVector3I(Vector3I A, Vector3I B)
+	{
+		this.A = A;
+		this.B = B;
+	}
+
+	public bool Contains(Vector3I element)
+	{
+		return A == element || B == element;
+	}
+}
