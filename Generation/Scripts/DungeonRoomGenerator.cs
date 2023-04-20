@@ -85,12 +85,12 @@ public class DungeonRoomGenerator
 public class RoomCluster
 {
 	public List<Room> Rooms { get; private set; }
-	public List<LinkedVector3I> Doors { get; private set; }
+	public List<LinkedVector3I> DoorPositions { get; private set; }
 	
 	public RoomCluster()
 	{
 		Rooms = new List<Room>();
-		Doors = new List<LinkedVector3I>();
+		DoorPositions = new List<LinkedVector3I>();
 	}
 	
 	public bool AddRoom(Room addend)
@@ -103,7 +103,7 @@ public class RoomCluster
 
 	public void AddDoor(LinkedVector3I door)
 	{
-		Doors.Add(door);
+		DoorPositions.Add(door);
 	}
 
 	public void AssignToGrid(Grid3D<Cell> grid)
@@ -113,9 +113,10 @@ public class RoomCluster
 			room.AssignCells(grid);
 		}
 
-		foreach (LinkedVector3I door in Doors)
+		foreach (LinkedVector3I doorPosition in DoorPositions)
 		{
-			Cell.Connect(grid[door.A],grid[door.B]);
+			Door generatedDoor = new Door(doorPosition);
+			generatedDoor.AssignCells(grid);
 		}
 	}
 	
@@ -133,7 +134,7 @@ public class RoomCluster
 			room.RoomGeneration.Translate(amount);
 		}
 
-		foreach (LinkedVector3I door in Doors)
+		foreach (LinkedVector3I door in DoorPositions)
 		{
 			door.A += amount;
 			door.B += amount;
@@ -373,6 +374,9 @@ public abstract class RoomGeneration
 				extrusionPositions.Add(position + (selectedFace.Direction * i));
 			}
 		}
+
+		// Don't extrude into shape that already exists
+		extrusionPositions = extrusionPositions.Except(shape).ToList();
 		
 		return extrusionPositions;
 	}

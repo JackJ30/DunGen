@@ -89,7 +89,7 @@ public partial class DungeonGenerator : Node
 			numTries = 0;
 		}*/
 
-		RoomCluster cluster = roomGenerator.GenerateRoomCluster(10);
+		RoomCluster cluster = roomGenerator.GenerateRoomCluster(20);
 		cluster.AssignToGrid(_grid);
 		
 	}
@@ -277,6 +277,14 @@ public abstract class DungeonLevelSegment
 		}
 	}
 	
+	public virtual void UnAssignCells(Grid3D<Cell> grid)
+	{
+		foreach (Vector3I position in GetOccupiedPositions())
+		{
+			if(grid[position].Segments.Contains(this)) grid[position].Segments.Remove(this);
+		}
+	}
+	
 	public virtual Vector3I[] GetOccupiedPositions()
 	{
 		return new Vector3I[] {};
@@ -284,7 +292,7 @@ public abstract class DungeonLevelSegment
 	
 	public virtual bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
 	{
-		return true;
+		return false;
 	}
 }
 
@@ -315,10 +323,7 @@ public abstract class PathfindingLevelSegment : DungeonLevelSegment
 	
 	public virtual void InterpretPathfindingResult(Grid3D<Cell> grid, List<PathfindingLevelSegment> results, int index)
 	{
-		foreach (Vector3I position in GetOccupiedPositions())
-		{
-			grid[position].Segments.Add(this);
-		}
+		AssignCells(grid);
 	}
 	
 	public virtual bool SatisfiesNextCondition(PathfindingLevelSegment segment)
@@ -404,11 +409,40 @@ public class Room : DungeonLevelSegment
 	public override bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
 	{
 		if (cellFrom.HasConnection(cellTo)) return true;
-		if (cellTo.IsEmpty()) return false;
-		if (!cellFrom.Segments.Select(x => x.id).Intersect(cellTo.Segments.Select(x => x.id)).Any()) return false;
-		if (!cellTo.Segments.Any(i => i.GetType() == typeof(Room))) return false;
-		
+		if (!cellTo.HasSegment<Room>()) return false;
+		if (!cellFrom.GetSegments<Room>().Select(x => x.id).Intersect(cellTo.GetSegments<Room>().Select(x => x.id)).Any()) return false;
+
 		return true;
+	}
+}
+
+[DataContract]
+public class Door : DungeonLevelSegment
+{
+	private LinkedVector3I _position;
+
+	public Door(LinkedVector3I position) : base()
+	{
+		this._position = position;
+	}
+
+	public override void AssignCells(Grid3D<Cell> grid)
+	{
+		base.AssignCells(grid);
+		
+		Cell.Connect(grid[_position.A],grid[_position.B]);
+	}
+
+	public override void UnAssignCells(Grid3D<Cell> grid)
+	{
+		base.UnAssignCells(grid);
+		
+		Cell.Disconnect(grid[_position.A],grid[_position.B]);
+	}
+
+	public override Vector3I[] GetOccupiedPositions()
+	{
+		return new Vector3I[] { _position.A, _position.B };
 	}
 }
 
@@ -444,7 +478,8 @@ public class Hallway : PathfindingLevelSegment
 			{
 				if(grid[position].HasSegment<Room>())
 				{
-					Cell.Connect(grid[End],grid[position]);
+					Door createdDoor = new Door(new LinkedVector3I(End, position));
+					createdDoor.AssignCells(grid);
 				}
 			}
 		}
@@ -455,7 +490,8 @@ public class Hallway : PathfindingLevelSegment
 			{
 				if(grid[position].HasSegment<Room>())
 				{
-					Cell.Connect(grid[End],grid[position]);
+					Door createdDoor = new Door(new LinkedVector3I(End, position));
+					createdDoor.AssignCells(grid);
 				}
 			}
 		}
@@ -528,7 +564,15 @@ public class Stairway : PathfindingLevelSegment
 		Cell.Connect(grid[End],grid[End + (Direction * new Vector3I(1, 0, 1))]);
 		Cell.Connect(grid[Start],grid[Start + (-Direction * new Vector3I(1, 0, 1))]);
 	}
-	
+
+	public override void UnAssignCells(Grid3D<Cell> grid)
+	{
+		base.UnAssignCells(grid);
+		
+		Cell.Disconnect(grid[End],grid[End + (Direction * new Vector3I(1, 0, 1))]);
+		Cell.Disconnect(grid[Start],grid[Start + (-Direction * new Vector3I(1, 0, 1))]);
+	}
+
 	public override bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
 	{
 		if (cellFrom.HasConnection(cellTo)) return true;
@@ -672,5 +716,17 @@ public class Cell
 		LinkedVector3I connection = new LinkedVector3I(a.Position, b.Position);
 		b.Connections.Add(connection);
 		a.Connections.Add(connection);
+	}
+
+	public static void Disconnect(Cell a, Cell b)
+	{
+		IEnumerable<LinkedVector3I> connectionsToRemove = a.Connections.Concat(b.Connections)
+			.Where(connection => connection.Contains(a.Position) && connection.Contains(b.Position));
+
+		foreach (LinkedVector3I connection in connectionsToRemove)
+		{
+			a.Connections.Remove(connection);
+			b.Connections.Remove(connection);
+		}
 	}
 }

@@ -136,7 +136,7 @@ public partial class DungeonRenderer : Node
 	{
 		if (!_grid.InBounds(cell.Position + offset)) return false;
 		
-		foreach (DungeonLevelSegment segment in cell.Segments)
+		foreach (DungeonLevelSegment segment in cell.Segments) // this is going to change...
 		{
 			if (segment.NeighborEvaluator(cell, _grid[cell.Position + offset], offset))
 			{
