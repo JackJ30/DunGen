@@ -24,19 +24,47 @@ public partial class DungeonRenderer : Node
 	{
 		_grid = grid;
 	}
+
+	public void RenderSegment(DungeonLevelSegment segment)
+	{
+		RenderSegment((dynamic)segment);
+	}
 	
-	public void DisplayCell(Cell cell)
+	public void RenderSegment(Room segment) // Room Rendering
+	{
+		foreach (Vector3I position in segment.GetOccupiedPositions())
+		{
+			RenderInterior(segment,position);
+		}
+	}
+	
+	public void RenderSegment(Hallway segment) // Hallway Rendering
+	{
+		RenderInterior(segment,segment.End);
+	}
+	
+	public void RenderSegment(Stairway segment) // Stairway Rendering
+	{
+		DisplayStair(segment);
+	}
+	
+	public void RenderSegment(Door segment) // Stairway Rendering
+	{
+		//DisplayStair(segment);
+	}
+	
+	public void RenderInterior(DungeonLevelSegment segment, Vector3I position)
 	{
 		
 		List<Node3D> newObjects = new List<Node3D>();
-		if (!HasNeighbor(cell, Vector3I.Down)) newObjects.Add(RoomFloor.Instantiate<Node3D>());
-		if (!HasNeighbor(cell, Vector3I.Up)) newObjects.Add(RoomCeiling.Instantiate<Node3D>());
+		if (!HasNeighbor(segment, position, Vector3I.Down)) newObjects.Add(RoomFloor.Instantiate<Node3D>());
+		if (!HasNeighbor(segment, position, Vector3I.Up)) newObjects.Add(RoomCeiling.Instantiate<Node3D>());
 		
 		List<int> neighbors = new List<int>();
-		neighbors.Add(HasNeighbor(cell, new Vector3I(0,0,1)) ? 1 : 0);
-		neighbors.Add(HasNeighbor(cell, new Vector3I(0,0,-1)) ? 1 : 0);
-		neighbors.Add(HasNeighbor(cell, new Vector3I(1,0,0)) ? 1 : 0);
-		neighbors.Add(HasNeighbor(cell, new Vector3I(-1,0,0)) ? 1 : 0);
+		neighbors.Add(HasNeighbor(segment, position, new Vector3I(0,0,1)) ? 1 : 0);
+		neighbors.Add(HasNeighbor(segment, position, new Vector3I(0,0,-1)) ? 1 : 0);
+		neighbors.Add(HasNeighbor(segment, position, new Vector3I(1,0,0)) ? 1 : 0);
+		neighbors.Add(HasNeighbor(segment, position, new Vector3I(-1,0,0)) ? 1 : 0);
 		Vector3 direction = new Vector3(neighbors[2] - neighbors[3], 0, neighbors[0] - neighbors[1]);
 		int numNeighbors = neighbors[0] + neighbors[1] + neighbors[2] + neighbors[3];
 		
@@ -80,7 +108,7 @@ public partial class DungeonRenderer : Node
 			if (newWall == null) return; // Should never happen
 			
 			AddChild(newWall);
-			newWall.GlobalPosition = GridToWorldPos((Vector3)cell.Position, CellScale, true);
+			newWall.GlobalPosition = GridToWorldPos((Vector3)position, CellScale, true);
 			
 			float angle = (float)Math.Atan2(tileDirection.Z, tileDirection.X) - (float)Math.Atan2(direction.Z, direction.X);
 			if (angle < 0) angle += 2*(float)Math.PI;
@@ -93,7 +121,7 @@ public partial class DungeonRenderer : Node
 		foreach (Node3D node in newObjects)
 		{
 			AddChild(node);
-			node.GlobalPosition = GridToWorldPos((Vector3)cell.Position, CellScale, true);
+			node.GlobalPosition = GridToWorldPos((Vector3)position, CellScale, true);
 		}
 	}
 	
@@ -132,16 +160,13 @@ public partial class DungeonRenderer : Node
 		GetNode("/root/Draw3D").Call("line",GridToWorldPos(point1,CellScale),GridToWorldPos(point2,CellScale));
 	}
 	
-	bool HasNeighbor(Cell cell, Vector3I offset)
+	bool HasNeighbor(DungeonLevelSegment segment, Vector3I position, Vector3I offset)
 	{
-		if (!_grid.InBounds(cell.Position + offset)) return false;
+		if (!_grid.InBounds(position+offset)) return false;
 		
-		foreach (DungeonLevelSegment segment in cell.Segments) // this is going to change...
+		if (segment.NeighborEvaluator(_grid[position], _grid[position + offset], offset))
 		{
-			if (segment.NeighborEvaluator(cell, _grid[cell.Position + offset], offset))
-			{
-				return true;
-			}
+			return true;
 		}
 		
 		return false;

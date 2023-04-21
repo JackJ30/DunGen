@@ -28,7 +28,7 @@ public partial class DungeonGenerator : Node
 	private Grid3D<Cell> _grid;
 	private Delaunay3D _delaunay;
 	private HashSet<Prim.Edge> _hallwayEdges;
-	private DungeonRenderer renderer;
+	private DungeonRenderer _renderer;
 	private DungeonRoomGenerator roomGenerator;
 	
 	private List<Room> _rooms;
@@ -44,15 +44,15 @@ public partial class DungeonGenerator : Node
 		});
 		GD.Randomize();
 		
-		renderer = this.GetNode("DungeonRenderer") as DungeonRenderer;
-		renderer.Initialize(_grid);
+		_renderer = this.GetNode("DungeonRenderer") as DungeonRenderer;
+		_renderer.Initialize(_grid);
 		roomGenerator = new DungeonRoomGenerator();
 		
 		_rooms = new List<Room>();
 		_stairways = new List<Stairway>();
 		
 		PlaceRooms();
-		DisplayCells();
+		RenderGrid();
 	}
 
 	private void PlaceRooms()
@@ -151,26 +151,31 @@ public partial class DungeonGenerator : Node
 			}
 		}
 	}
-	
-	void DisplayCells()
+
+	void RenderGrid()
 	{
-		//SerializedDungeon serializedDungeon = new SerializedDungeon(_grid);
-		//String dungeon = serializedDungeon.Serialize();
-		
-		//_grid = serializedDungeon.DeSerialize(dungeon);
+		foreach (DungeonLevelSegment segment in GetAllSegments())
+		{
+			_renderer.RenderSegment(segment);
+		}
+	}
+
+	private List<DungeonLevelSegment> GetAllSegments()
+	{
+		List<DungeonLevelSegment> segments = new List<DungeonLevelSegment>();
 		
 		for (int x = 0; x < Size.X; x++) {
 			for (int y = 0; y < Size.Y; y++) {
 				for (int z = 0; z < Size.Z; z++) {
-					if (!_grid[x,y,z].IsEmpty()) renderer.DisplayCell(_grid[x,y,z]);
+					foreach (DungeonLevelSegment segment in _grid[x,y,z].Segments)
+					{
+						if (!segments.Contains(segment)) segments.Add(segment);
+					}
 				}
 			}
 		}
-		
-		foreach (Stairway stairway in _stairways)
-		{
-			renderer.DisplayStair(stairway);
-		}
+
+		return segments;
 	}
 }
 
