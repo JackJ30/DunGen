@@ -54,6 +54,8 @@ public class DungeonRoomGenerator
 				}
 			}
 		}
+
+		cluster.AddExtraDoors(0.2f); // EXTRA DOOR PERCENTAGE
 		
 		cluster.Abs();
 		return cluster;
@@ -138,6 +140,71 @@ public class RoomCluster
 		{
 			door.A += amount;
 			door.B += amount;
+		}
+	}
+
+	public void AddExtraDoors(float extraDoorPercentage)
+	{
+		if (Rooms.Count() <= 2) return; // Small optimization, no need to add extra connections if there are two or less rooms
+		
+		int numExtraDoors = (int)Math.Round(Rooms.Count() * extraDoorPercentage);
+		List<Vector3I> compositeShape = GetCompositeShape();
+		List<Vector3I> doorPositions = new List<Vector3I>();
+		DoorPositions.ForEach(door =>
+		{
+			doorPositions.Add(door.A);
+			doorPositions.Add(door.B);
+		});
+
+		int doorIndex = 0;
+		foreach (Room room in Rooms.OrderBy(x => GD.Randf()))
+		{
+			List<Vector3I> roomGlobalShape = room.RoomGeneration.GlobalShape;
+			
+			int roomMinHeight = roomGlobalShape.Min(position => position.Y);
+			int roomMaxHeight = roomGlobalShape.Max(position => position.Y);
+			int roomHeight =  roomMaxHeight - roomMinHeight;
+			int targetHeight = 0;
+		
+			for (int i = 0; i < roomHeight; i++)
+			{
+				if (GD.Randf() < 0.1f) // EXTRA DOOR FLOOR INCREASE CHANCE
+				{
+					targetHeight++;
+				}
+				else
+				{
+					break;
+				}
+			}
+
+			List<RoomFace.ExposedNormal> normals =
+				RoomFace.ExposedNormal.GetAllExposedNormals(roomGlobalShape);
+			// Selectes normals that are on the selected floor, not facing up, facing into another room and not inside another door
+			normals = normals.Where(normal => normal.Position.Y == roomMinHeight + targetHeight && normal.Direction.Y == 0 && compositeShape.Contains(normal.Position + normal.Direction) && !(doorPositions.Contains(normal.Position) || doorPositions.Contains(normal.Position + normal.Direction))).ToList();
+			
+			if (!normals.Any()) continue; // This really shouldn't happen often
+
+			foreach (RoomFace.ExposedNormal normal in normals)
+			{
+				// check if rooms are already connected, as to not add redundant connections
+				Room[] rooms = new Room[2] { room, Rooms.First(room => room.RoomGeneration.GlobalShape.Contains(normal.Position + normal.Direction)) };
+				List<Vector3I> otherRoomGlobalShape = rooms[1].RoomGeneration.GlobalShape;
+				bool isRedundant = false;
+				if (DoorPositions.Any(door => (roomGlobalShape.Contains(door.A) || roomGlobalShape.Contains(door.B)) &&
+				                              (otherRoomGlobalShape.Contains(door.A) ||
+				                               otherRoomGlobalShape.Contains(door.B)))) continue;
+
+				LinkedVector3I door = new LinkedVector3I(normal.Position,
+					normal.Position + normal.Direction);
+				AddDoor(door);
+				doorPositions.Add(door.A);
+				doorPositions.Add(door.B);
+
+				doorIndex++;
+
+				if (doorIndex >= numExtraDoors) return;
+			}
 		}
 	}
 	
