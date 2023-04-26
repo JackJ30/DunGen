@@ -170,6 +170,18 @@ public class Room : DungeonLevelSegment
 		
 		return extrusionPositions;
 	}
+
+	protected Vector3I Abs()
+	{
+		//return Vector3I.Zero;
+		
+		Vector3I translation = Util.GetSmallestIndividual(Shape.ToArray());
+
+		TranslateLocally(-translation);
+		Translate(LocalToGlobal(translation) - _origin); // Quick way to convert local translation direction to global
+
+		return -translation;
+	}
 	
 	protected List<Vector3I> GetPositionsInBounds(Vector3I pos1, Vector3I pos2) // pos1 < pos2 ALL ELEMENTS, TODO: Maybe not the best place for this function
 	{
@@ -197,6 +209,14 @@ public class Room : DungeonLevelSegment
 	public void Translate(Vector3I amount) // TODO: Figure out a way to make this also move positions that are assigned to a grid (or decide we don't do that)
 	{
 		_origin += amount;
+		GlobalShape = GetGlobalShape();
+	}
+	private void TranslateLocally(Vector3I amount)
+	{
+		for (int i = 0; i < _shape.Count(); i++)
+		{
+			_shape[i] += amount;
+		}
 		GlobalShape = GetGlobalShape();
 	}
 	
@@ -238,6 +258,13 @@ public class Room : DungeonLevelSegment
 		
 		return result.ToArray();
 	}
+
+	public Grid3D<Cell> ToGrid()
+	{
+		Abs();
+
+		return null;
+	}
 	
 	private List<Vector3I> GetGlobalShape()
 	{
@@ -259,6 +286,7 @@ public class MediumRoom : Room
 	public MediumRoom(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
+		ToGrid();
 	}
 	
 	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
@@ -282,6 +310,7 @@ public class LongRoom : Room
 	public LongRoom(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
+		ToGrid();
 	}
 	
 	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
@@ -305,6 +334,7 @@ public class LargeRoom : Room
 	public LargeRoom(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
+		ToGrid();
 	}
 	
 	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
@@ -328,6 +358,7 @@ public class TShapedRoom : Room
 	public TShapedRoom(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
+		ToGrid();
 	}
 	
 	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
