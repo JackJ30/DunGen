@@ -42,6 +42,20 @@ public static class Util
 		
 		return smallest;
 	}
+	
+	public static Vector3I GetLargestIndividual(Vector3I[] input)
+	{
+		Vector3I largest = new Vector3I(int.MinValue,int.MinValue,int.MinValue);
+		
+		foreach (Vector3I vector3I in input)
+		{
+			if (vector3I.X > largest.X) { largest.X = vector3I.X; }
+			if (vector3I.Y > largest.Y) { largest.Y = vector3I.Y; }
+			if (vector3I.Z > largest.Z) { largest.Z = vector3I.Z; }
+		}
+		
+		return largest;
+	}
 }
 
 public class FloodFill<T>

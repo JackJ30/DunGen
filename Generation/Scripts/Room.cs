@@ -262,7 +262,10 @@ public class Room : DungeonLevelSegment
 	public Grid3D<Cell> ToGrid()
 	{
 		Abs();
+		Grid3D<Cell> grid = new Grid3D<Cell>(Util.GetLargestIndividual(Shape.ToArray()), Vector3I.Zero);
 
+		AssignCells(grid);
+		
 		return null;
 	}
 	
@@ -286,7 +289,6 @@ public class MediumRoom : Room
 	public MediumRoom(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
-		ToGrid();
 	}
 	
 	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
@@ -310,7 +312,6 @@ public class LongRoom : Room
 	public LongRoom(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
-		ToGrid();
 	}
 	
 	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
@@ -334,7 +335,6 @@ public class LargeRoom : Room
 	public LargeRoom(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
-		ToGrid();
 	}
 	
 	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
@@ -358,7 +358,6 @@ public class TShapedRoom : Room
 	public TShapedRoom(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom, direction, context)
 	{
 		Shape = GenerateShape(pointFrom, direction);
-		ToGrid();
 	}
 	
 	protected override List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
