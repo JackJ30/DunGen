@@ -15,13 +15,8 @@ public class Room : DungeonLevelSegment
 	}
 	private List<Vector3I> _shape = new List<Vector3I>();
 	
-	protected Vector3I _origin;
-	protected Vector3I _direction;
-	public Room(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base()
+	public Room(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null) : base(pointFrom,direction)
 	{
-		_origin = pointFrom;
-		_direction = direction;
-		
 		_shape = GenerateShape(pointFrom, direction);
 	}
 	
@@ -47,7 +42,7 @@ public class Room : DungeonLevelSegment
 	
 	public override Vector3I[] GetOccupiedPositions()
 	{
-		return GlobalShape.ToArray();
+		return _shape.ToArray();
 	}
 	
 	public override bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
@@ -62,14 +57,6 @@ public class Room : DungeonLevelSegment
 	#endregion
 
 	#region Shape
-
-	public override void AssignCells(Grid3D<Cell> grid)
-	{
-		foreach (Vector3I position in GlobalShape)
-		{
-			grid[position].Segments.Add(this);
-		}
-	}
 	
 	protected virtual List<Vector3I> GenerateShape(Vector3I pointFrom, Vector3I direction, List<Vector3I> context = null)
 	{
@@ -178,7 +165,7 @@ public class Room : DungeonLevelSegment
 		Vector3I translation = Util.GetSmallestIndividual(Shape.ToArray());
 
 		TranslateLocally(-translation);
-		Translate(LocalToGlobal(translation) - _origin); // Quick way to convert local translation direction to global
+		Translate(LocalToGlobal(translation) - Origin); // Quick way to convert local translation direction to global
 
 		return -translation;
 	}
@@ -206,9 +193,9 @@ public class Room : DungeonLevelSegment
 		
 	}
 	
-	public void Translate(Vector3I amount) // TODO: Figure out a way to make this also move positions that are assigned to a grid (or decide we don't do that)
+	public override void Translate(Vector3I amount) // TODO: Figure out a way to make this also move positions that are assigned to a grid (or decide we don't do that)
 	{
-		_origin += amount;
+		base.Translate(amount);
 		GlobalShape = GetGlobalShape();
 	}
 	private void TranslateLocally(Vector3I amount)
@@ -219,13 +206,7 @@ public class Room : DungeonLevelSegment
 		}
 		GlobalShape = GetGlobalShape();
 	}
-	
-	public Vector3I LocalToGlobal(Vector3I localPosition)
-	{
-		Vector3 directionConverted = (Vector3)_direction;
-		return _origin + (_direction * localPosition.Z) + (Vector3I.Up * localPosition.Y) + ((Vector3I)directionConverted.Rotated(Vector3.Up, (float)-Math.PI/2) * localPosition.X);
-	}
-	
+
 	public Vector3 GetAveragePosition()
 	{
 		float meanPositionX = 0f;

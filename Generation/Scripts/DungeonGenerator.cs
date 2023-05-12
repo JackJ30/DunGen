@@ -269,22 +269,28 @@ public abstract class DungeonLevelSegment
 	[DataMember]
 	public String id { get; private set; }
 	
-	public DungeonLevelSegment()
+	public Vector3I Origin { get; protected set; }
+	public Vector3I Direction { get; protected set; }
+	
+	public DungeonLevelSegment(Vector3I origin, Vector3I direction)
 	{
 		id = Guid.NewGuid().ToString("N");
+
+		Origin = origin;
+		Direction = direction;
 	}
 	
-	public virtual void AssignCells(Grid3D<Cell> grid)
+	public virtual void AssignCells(Grid3D<Cell> grid, bool local = false)
 	{
-		foreach (Vector3I position in GetOccupiedPositions())
+		foreach (Vector3I position in GetOccupiedPositions().Select(position => RelativePosition(position,local)))
 		{
 			grid[position].Segments.Add(this);
 		}
 	}
 	
-	public virtual void UnAssignCells(Grid3D<Cell> grid)
+	public virtual void UnAssignCells(Grid3D<Cell> grid, bool local = false)
 	{
-		foreach (Vector3I position in GetOccupiedPositions())
+		foreach (Vector3I position in GetOccupiedPositions().Select(position => RelativePosition(position,local)))
 		{
 			if(grid[position].Segments.Contains(this)) grid[position].Segments.Remove(this);
 		}
@@ -294,10 +300,32 @@ public abstract class DungeonLevelSegment
 	{
 		return new Vector3I[] {};
 	}
+
+	public virtual void Translate(Vector3I amount)
+	{
+		Origin += amount;
+	}
+
+	public virtual void RotateXZ(Vector3I amount) // Change direction
+	{
+		Direction = Util.RotationNumberToDirectionXZ(Util.DirectionToRotationNumberXZ(Direction) +
+		                                              Util.DirectionToRotationNumberXZ(Direction));
+	}
 	
 	public virtual bool NeighborEvaluator(Cell cellFrom, Cell cellTo, Vector3I delta)
 	{
 		return false;
+	}
+	
+	protected Vector3I LocalToGlobal(Vector3I localPosition)
+	{
+		Vector3 directionConverted = (Vector3)Direction;
+		return Origin + (Direction * localPosition.Z) + (Vector3I.Up * localPosition.Y) + ((Vector3I)directionConverted.Rotated(Vector3.Up, (float)-Math.PI/2) * localPosition.X);
+	}
+
+	protected Vector3I RelativePosition(Vector3I position, bool local) // This is just a function to shorten lines of in functions that work both globally and locally
+	{
+		return local ? position : LocalToGlobal(position);
 	}
 }
 
@@ -306,14 +334,11 @@ public abstract class PathfindingLevelSegment : DungeonLevelSegment
 {
 	public Vector3I Start { get; protected set; }
 	public Vector3I End { get; protected set; }
-	public Vector3I Direction { get; protected set; }
 	
-	public PathfindingLevelSegment(Vector3I start, Vector3I end)
+	public PathfindingLevelSegment(Vector3I start, Vector3I end, Vector3I origin) : base(origin,end - start)
 	{
 		Start = start;
 		End = end;
-		
-		Direction = End - Start;
 	}
 	
 	public virtual float CalculateCost(Vector3I targetPos, Vector3I previousPos, Grid3D<Cell> grid) // -1f = non-traversable
@@ -340,37 +365,36 @@ public abstract class PathfindingLevelSegment : DungeonLevelSegment
 [DataContract]
 public class Door : DungeonLevelSegment
 {
-	private LinkedVector3I _position;
-
-	public Door(LinkedVector3I position) : base()
+	public Door(LinkedVector3I position) : base(position.A, position.A - position.B)
 	{
-		this._position = position;
 	}
 
-	public override void AssignCells(Grid3D<Cell> grid)
+	public override void AssignCells(Grid3D<Cell> grid, bool local = false)
 	{
 		base.AssignCells(grid);
 		
-		Cell.Connect(grid[_position.A],grid[_position.B]);
+		Cell.Connect(grid[RelativePosition(Vector3I.Zero, local)],grid[RelativePosition(new Vector3I(0,0,1), local)]);
 	}
 
-	public override void UnAssignCells(Grid3D<Cell> grid)
+	public override void UnAssignCells(Grid3D<Cell> grid, bool local = false)
 	{
 		base.UnAssignCells(grid);
 		
-		Cell.Disconnect(grid[_position.A],grid[_position.B]);
+		Cell.Disconnect(grid[RelativePosition(Vector3I.Zero, local)],grid[RelativePosition(new Vector3I(0,0,1), local)]);
 	}
 
 	public override Vector3I[] GetOccupiedPositions()
 	{
-		return new Vector3I[] { _position.A, _position.B };
+		return new Vector3I[] { Vector3I.Zero, new Vector3I(0,0,1) };
 	}
 }
 
+
+// HALLWAY AND STAIRWAY NEED FIXING
 [DataContract]
 public class Hallway : PathfindingLevelSegment
 {
-	public Hallway(Vector3I start, Vector3I end) : base(start, end)
+	public Hallway(Vector3I start, Vector3I end) : base(start, end, end)
 	{
 	}
 	
@@ -443,15 +467,13 @@ public class Hallway : PathfindingLevelSegment
 [DataContract]
 public class Stairway : PathfindingLevelSegment
 {
-	public Stairway(Vector3I start, Vector3I end) : base(start, end)
+	public Stairway(Vector3I start, Vector3I end) : base(start, end, start)
 	{
 		Vector3I direction = (end - start) / 3;
 		direction.Y = 0;
 		
 		Start = start + direction;
 		End = end - direction;
-		
-		Direction = End - Start;
 	}
 	
 	public override float CalculateCost(Vector3I targetPos, Vector3I previousPos, Grid3D<Cell> grid)
@@ -486,7 +508,7 @@ public class Stairway : PathfindingLevelSegment
 		Cell.Connect(grid[Start],grid[Start + (-Direction * new Vector3I(1, 0, 1))]);
 	}
 
-	public override void UnAssignCells(Grid3D<Cell> grid)
+	public override void UnAssignCells(Grid3D<Cell> grid, bool local = false)
 	{
 		base.UnAssignCells(grid);
 		

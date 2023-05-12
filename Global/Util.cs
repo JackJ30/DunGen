@@ -2,6 +2,7 @@ using Godot;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 public static class Util
 {
@@ -55,6 +56,28 @@ public static class Util
 		}
 		
 		return largest;
+	}
+
+	public static int DirectionToRotationNumberXZ(Vector3I direction)
+	{
+		if (direction.X == 1 && direction.Z == 0) return 0;
+		if (direction.X == 0 && direction.Z == 1) return 1;
+		if (direction.X == -1 && direction.Z == 0) return 2;
+		if (direction.X == 0 && direction.Z == -1) return 3;
+		GD.PushError("Direction is not aligned to an axis");
+		return -1;
+	}
+	
+	public static Vector3I RotationNumberToDirectionXZ(int rotationNumber)
+	{
+		int remainder = rotationNumber % 4;
+		
+		if (remainder == 0) return new Vector3I(1,0,0);
+		if (remainder == 1) return new Vector3I(0,0,1);
+		if (remainder == 2) return new Vector3I(-1,0,0);
+		if (remainder == 3) return new Vector3I(0,0,-1);
+		GD.PushError("This should never happen, bug with rotation number");
+		return Vector3I.Zero;
 	}
 }
 
